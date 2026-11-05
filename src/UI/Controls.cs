@@ -51,7 +51,7 @@ namespace LocaForge.UI
         public Glyph Glyph;
         public int Radius = 10;
         public bool AlignLeft;
-        bool hover, down;
+        bool hover, down, mousePressed;
 
         public FlatButton(string text, ButtonKind kind, Glyph glyph = Glyph.None)
         {
@@ -59,6 +59,8 @@ namespace LocaForge.UI
             Font = Theme.Button;
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.Selectable, true);
+            SetStyle(ControlStyles.StandardClick | ControlStyles.StandardDoubleClick, false);
+            AccessibleRole = AccessibleRole.PushButton;
             TabStop = true;
         }
 
@@ -71,8 +73,39 @@ namespace LocaForge.UI
 
         protected override void OnMouseEnter(EventArgs e) { hover = true; Invalidate(); base.OnMouseEnter(e); }
         protected override void OnMouseLeave(EventArgs e) { hover = false; down = false; Invalidate(); base.OnMouseLeave(e); }
-        protected override void OnMouseDown(MouseEventArgs e) { if (e.Button == MouseButtons.Left) { down = true; Focus(); Invalidate(); } base.OnMouseDown(e); }
-        protected override void OnMouseUp(MouseEventArgs e) { down = false; Invalidate(); base.OnMouseUp(e); }
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            if (Enabled && e.Button == MouseButtons.Left) { mousePressed = down = true; Capture = true; Focus(); Invalidate(); }
+            base.OnMouseDown(e);
+        }
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            if (mousePressed) { down = ClientRectangle.Contains(e.Location); Invalidate(); }
+            base.OnMouseMove(e);
+        }
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            bool activate = Enabled && mousePressed && e.Button == MouseButtons.Left && ClientRectangle.Contains(e.Location);
+            mousePressed = down = false;
+            Capture = false;
+            Invalidate();
+            base.OnMouseUp(e);
+            if (activate) OnClick(EventArgs.Empty);
+        }
+        protected override void OnMouseCaptureChanged(EventArgs e)
+        {
+            if (!Capture) { mousePressed = down = false; Invalidate(); }
+            base.OnMouseCaptureChanged(e);
+        }
+        protected override AccessibleObject CreateAccessibilityInstance() => new ButtonAccessibleObject(this);
+        sealed class ButtonAccessibleObject : ControlAccessibleObject
+        {
+            readonly FlatButton button;
+            public ButtonAccessibleObject(FlatButton button) : base(button) { this.button = button; }
+            public override AccessibleRole Role => AccessibleRole.PushButton;
+            public override string DefaultAction => "按下";
+            public override void DoDefaultAction() { if (button.Enabled) button.OnClick(EventArgs.Empty); }
+        }
         protected override void OnEnabledChanged(EventArgs e) { Cursor = Enabled ? Cursors.Hand : Cursors.Default; Invalidate(); base.OnEnabledChanged(e); }
         protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
         protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
