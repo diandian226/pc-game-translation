@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using FMGPatcher.Core;
+using LocaForge.Core;
 
-namespace FMGPatcher.UI
+namespace LocaForge.UI
 {
     sealed class GameItem
     {

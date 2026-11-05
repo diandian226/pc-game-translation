@@ -6,7 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
 
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     public sealed class PatchProgress
     {

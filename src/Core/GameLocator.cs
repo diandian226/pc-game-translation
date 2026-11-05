@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Win32;
 
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     public sealed class GameCandidate
     {

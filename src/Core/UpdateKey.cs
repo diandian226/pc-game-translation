@@ -1,4 +1,4 @@
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     /// <summary>
     /// 更新清单签名公钥（RSA 3072）。对应私钥只在发布者本机 signing\update-signing.private.xml，

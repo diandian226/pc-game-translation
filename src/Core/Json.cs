@@ -2,7 +2,7 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using System.Text;
 
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     /// <summary>用系统自带的 DataContractJsonSerializer，不额外带 DLL。</summary>
     public static class Json

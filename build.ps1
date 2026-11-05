@@ -1,4 +1,4 @@
-﻿# 构建 FMGWorld 电脑版汉化工具
+﻿# 构建 LocaForge 汉化工坊
 #   1. 生成 exe 图标（来自安卓版的启动图标原稿）
 #   2. 把 PC 补丁目录打包成 payload zip
 #   3. 编译并把 exe、catalog.json、payload 放进 publish\
@@ -58,9 +58,9 @@ Remove-Item $stage -Recurse -Force
 Write-Host ("补丁包 {0:N1} MB" -f ((Get-Item $zip).Length / 1MB))
 
 # ---------- 3. 编译 ----------
-dotnet build (Join-Path $PSScriptRoot "FMGPatcher.csproj") -c Release -o (Join-Path $PSScriptRoot "build") --nologo -v q
+dotnet build (Join-Path $PSScriptRoot "LocaForge.csproj") -c Release -o (Join-Path $PSScriptRoot "build") --nologo -v q
 if ($LASTEXITCODE -ne 0) { throw "编译失败" }
-Copy-Item (Join-Path $PSScriptRoot "build\FMGPatcher.exe") $publish -Force
-Copy-Item (Join-Path $PSScriptRoot "build\FMGPatcher.exe.config") $publish -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $PSScriptRoot "build\LocaForge.exe") $publish -Force
+Copy-Item (Join-Path $PSScriptRoot "build\LocaForge.exe.config") $publish -Force -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $PSScriptRoot "catalog.json") $publish -Force
 Write-Host "完成：$publish"

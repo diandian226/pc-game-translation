@@ -5,7 +5,7 @@ using System.Drawing.Text;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace FMGPatcher.UI
+namespace LocaForge.UI
 {
     /// <summary>
     /// 与安卓汉化工具同一套颜色：暖灰中性色阶 + 朱红强调色 + 墨色主按钮。

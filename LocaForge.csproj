@@ -13,13 +13,13 @@
     <Prefer32Bit>false</Prefer32Bit>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <AssemblyName>FMGPatcher</AssemblyName>
-    <RootNamespace>FMGPatcher</RootNamespace>
+    <AssemblyName>LocaForge</AssemblyName>
+    <RootNamespace>LocaForge</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>assets\app.ico</ApplicationIcon>
-    <Version>0.2.0</Version>
-    <Product>FMGWorld 电脑版汉化工具</Product>
-    <Company>FMGWorld 汉化组</Company>
+    <Version>0.3.0</Version>
+    <Product>LocaForge 汉化工坊</Product>
+    <Company>LocaForge</Company>
     <Copyright>非官方汉化，仅供学习交流</Copyright>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

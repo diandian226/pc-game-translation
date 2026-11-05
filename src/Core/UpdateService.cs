@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     /// <summary>
     /// update.json：随每个 GitHub Release 发布，工具从 releases/latest 读取。
@@ -61,7 +61,7 @@ namespace FMGPatcher.Core
     public static class UpdateService
     {
         public const string Repo = "diandian226/pc-game-translation";
-        static string LatestBase => Environment.GetEnvironmentVariable("FMGPATCHER_UPDATE_BASE")   // 测试用：指向本地服务器
+        static string LatestBase => Environment.GetEnvironmentVariable("LOCAFORGE_UPDATE_BASE")   // 测试用：指向本地服务器
                                     ?? "https://github.com/" + Repo + "/releases/latest/download";
         public static string ReleasesPage => "https://github.com/" + Repo + "/releases/latest";
 
@@ -72,7 +72,7 @@ namespace FMGPatcher.Core
             {
                 Timeout = TimeSpan.FromMinutes(10),
             };
-            c.DefaultRequestHeaders.UserAgent.ParseAdd("FMGPatcher/" + AppInfo.Version);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("LocaForge/" + AppInfo.Version);
             return c;
         });
 
@@ -86,13 +86,7 @@ namespace FMGPatcher.Core
                 json = await GetBytes(LatestBase + "/update.json", cts.Token);
                 sig = await GetBytes(LatestBase + "/update.json.sig", cts.Token);
             }
-            if (!Verify(json, sig)) throw new PatchException("更新信息的签名无效，已忽略");
-
-            UpdateManifest m;
-            using (var ms = new MemoryStream(json))
-                m = (UpdateManifest)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(UpdateManifest)).ReadObject(ms);
-            if (m.Schema != 1) throw new PatchException("更新信息格式不受支持，请到发布页手动下载新版");
-
+            var m = ParseVerified(json, sig);
             var info = new UpdateInfo { Manifest = m };
             info.ToolUpdate = m.Tool != null && AppInfo.VersionLess(AppInfo.Version, m.Tool.Version);
 
@@ -105,6 +99,24 @@ namespace FMGPatcher.Core
                 info.PatchChanges = DescribeChanges(current, m.Catalog);
             }
             return info;
+        }
+
+        /// <summary>验签并解析清单。发布脚本也用它（--verify-manifest）在上传前自检。</summary>
+        public static UpdateManifest ParseVerified(byte[] json, byte[] sig)
+        {
+            if (!Verify(json, sig)) throw new PatchException("更新信息的签名无效，已忽略");
+            UpdateManifest m;
+            try
+            {
+                using (var ms = new MemoryStream(json))
+                    m = (UpdateManifest)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(UpdateManifest)).ReadObject(ms);
+            }
+            catch (SerializationException) { throw new PatchException("更新信息格式有误，请稍后再试或到发布页手动下载"); }
+            if (m.Schema != 1) throw new PatchException("更新信息格式不受支持，请到发布页手动下载新版");
+            if (m.Tool == null || !System.Version.TryParse(m.Tool.Version, out _)) throw new PatchException("更新信息里的工具版本无效");
+            if (!string.IsNullOrEmpty(m.MinToolVersion) && !System.Version.TryParse(m.MinToolVersion, out _))
+                throw new PatchException("更新信息里的最低工具版本无效");
+            return m;
         }
 
         static List<string> DescribeChanges(Catalog oldCat, Catalog newCat)

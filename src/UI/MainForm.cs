@@ -7,9 +7,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using FMGPatcher.Core;
+using LocaForge.Core;
 
-namespace FMGPatcher.UI
+namespace LocaForge.UI
 {
     /// <summary>
     /// 左侧：电脑上找到的游戏。右侧：选中游戏的卡片（游戏图标 + 版本签条）和安装操作。
@@ -74,7 +74,7 @@ namespace FMGPatcher.UI
         {
             using (var g = CreateGraphics()) Theme.Init(g.DpiX / 96f);
             AutoScaleMode = AutoScaleMode.None;
-            Text = "游戏汉化工具";
+            Text = "LocaForge 汉化工坊";
             Font = Theme.Body;
             BackColor = Theme.Page;
             ClientSize = new Size(Theme.Dp(1000), Theme.Dp(760));
@@ -121,8 +121,8 @@ namespace FMGPatcher.UI
                 g.DrawImage(appIcon, new Rectangle(pad, Theme.Dp(24), iconSize, iconSize));
             }
             int tx = pad + iconSize + Theme.Dp(12);
-            Theme.DrawText(g, "游戏汉化工具", Theme.Heading, Theme.Text, new Rectangle(tx, Theme.Dp(20), side.Width - tx, Theme.Dp(24)));
-            Theme.DrawText(g, "v" + AppInfo.Version + " · 电脑版", Theme.Caption, Theme.TextMuted, new Rectangle(tx, Theme.Dp(42), side.Width - tx, Theme.Dp(18)));
+            Theme.DrawText(g, "LocaForge", Theme.Heading, Theme.Text, new Rectangle(tx, Theme.Dp(20), side.Width - tx, Theme.Dp(24)));
+            Theme.DrawText(g, "汉化工坊 · v" + AppInfo.Version, Theme.Caption, Theme.TextMuted, new Rectangle(tx, Theme.Dp(42), side.Width - tx, Theme.Dp(18)));
 
             int ly = Theme.Dp(88);
             Theme.DrawText(g, "电脑上的游戏", Theme.Caption, Theme.TextMuted, new Rectangle(pad, ly, Theme.Dp(160), Theme.Dp(20)));
@@ -750,11 +750,17 @@ namespace FMGPatcher.UI
     /// <summary>记住用户手动选过的游戏目录。</summary>
     static class KnownDirs
     {
-        static string FilePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "FMGPatcher", "games.txt");
+        static string FilePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LocaForge", "games.txt");
+        /// <summary>改名前（FMGPatcher）的记录，新记录不存在时读它。</summary>
+        static string LegacyPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "FMG" + "Patcher", "games.txt");
 
         public static List<string> Load()
         {
-            try { return File.Exists(FilePath) ? File.ReadAllLines(FilePath).Where(l => l.Trim().Length > 0).ToList() : new List<string>(); }
+            try
+            {
+                var f = File.Exists(FilePath) ? FilePath : LegacyPath;
+                return File.Exists(f) ? File.ReadAllLines(f).Where(l => l.Trim().Length > 0).ToList() : new List<string>();
+            }
             catch { return new List<string>(); }
         }
 

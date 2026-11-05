@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     public enum PatchState { NotPatched, Patched, ManuallyPatched, Interrupted }
 

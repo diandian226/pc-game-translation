@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 
-namespace FMGPatcher.UI
+namespace LocaForge.UI
 {
     public enum Glyph { None, Search, Folder, Help, Chevron, Gamepad, Install, Restore, Open, Refresh }
 

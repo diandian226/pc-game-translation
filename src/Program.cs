@@ -4,10 +4,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
-using FMGPatcher.Core;
-using FMGPatcher.UI;
+using LocaForge.Core;
+using LocaForge.UI;
 
-namespace FMGPatcher
+namespace LocaForge
 {
     static class Program
     {
@@ -28,7 +28,7 @@ namespace FMGPatcher
 
         [DllImport("kernel32.dll")] static extern bool AttachConsole(int pid);
 
-        /// <summary>开发用：把窗口画成 PNG 检查界面。FMGPatcher.exe --render out.png ["游戏目录"]</summary>
+        /// <summary>开发用：把窗口画成 PNG 检查界面。LocaForge.exe --render out.png ["游戏目录"]</summary>
         static int Render(string[] args)
         {
             Application.EnableVisualStyles();
@@ -54,12 +54,12 @@ namespace FMGPatcher
 
         /// <summary>
         /// 命令行模式，供管理员提权和自动化测试使用：
-        ///   FMGPatcher.exe --scan
-        ///   FMGPatcher.exe --status    "游戏目录"
-        ///   FMGPatcher.exe --install   "游戏目录"
-        ///   FMGPatcher.exe --uninstall "游戏目录"
-        ///   FMGPatcher.exe --check-update      只检查
-        ///   FMGPatcher.exe --update            下载并应用补丁更新和工具更新（不重启）
+        ///   LocaForge.exe --scan
+        ///   LocaForge.exe --status    "游戏目录"
+        ///   LocaForge.exe --install   "游戏目录"
+        ///   LocaForge.exe --uninstall "游戏目录"
+        ///   LocaForge.exe --check-update      只检查
+        ///   LocaForge.exe --update            下载并应用补丁更新和工具更新（不重启）
         /// </summary>
         static int RunCommandLine(string[] args)
         {
@@ -78,6 +78,13 @@ namespace FMGPatcher
                 {
                     foreach (var g in GameLocator.FindAll(catalog, true, null, CancellationToken.None))
                         Console.WriteLine(g.Source + "\t" + g.Dir);
+                    return 0;
+                }
+                if (cmd == "--verify-manifest")
+                {
+                    if (args.Length < 2) throw new PatchException("缺少 update.json 路径");
+                    var m = UpdateService.ParseVerified(File.ReadAllBytes(args[1]), File.ReadAllBytes(args[1] + ".sig"));
+                    Console.WriteLine("ok tool=" + m.Tool.Version + " revision=" + (m.Catalog?.Revision ?? 0) + " payloads=" + m.Payloads.Count + " min=" + m.MinToolVersion);
                     return 0;
                 }
                 if (cmd == "--check-update" || cmd == "--update")

@@ -5,7 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace FMGPatcher.UI
+namespace LocaForge.UI
 {
     /// <summary>所有自绘控件的基类：双缓冲，背景取父控件颜色，圆角外的地方不露底。</summary>
     abstract class PaintedControl : Control

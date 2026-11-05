@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     /// <summary>catalog.json：工具支持哪些游戏、每个版本对应哪个补丁包。与安卓版 VersionCatalog 同一思路。</summary>
     [DataContract]

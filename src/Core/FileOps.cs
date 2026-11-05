@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     public static class FileOps
     {

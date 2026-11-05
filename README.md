@@ -1,4 +1,4 @@
-# PC 游戏汉化工具
+# LocaForge 汉化工坊
 
 电脑版游戏汉化补丁的安装工具和补丁发布仓库。目前支持 FMGWorld 0.2.1。
 
@@ -6,8 +6,8 @@
 
 ## 下载使用
 
-1. 到 [Releases](../../releases/latest) 下载 `FMGWorld-PC-zh-tool.zip`，解压到任意位置
-2. 双击 `FMGPatcher.exe`，工具会自动查找电脑上的游戏；找不到时点"搜索电脑"，或把游戏文件夹拖进窗口
+1. 到 [Releases](../../releases/latest) 下载 `LocaForge.zip`，解压到任意位置
+2. 双击 `LocaForge.exe`，工具会自动查找电脑上的游戏；找不到时点"搜索电脑"，或把游戏文件夹拖进窗口
 3. 本机版本和补丁适配一致后，点"安装中文补丁"
 4. 想恢复英文原版时，点"还原原版"
 
@@ -29,7 +29,7 @@ C# WinForms，目标 .NET Framework 4.8（Win10/11 自带），64 位运行，ex
 .\build.ps1
 ```
 
-产物在 `publish\`：`FMGPatcher.exe`、`catalog.json`、`payload\fmgworld-zh-0.2.1.zip`。
+产物在 `publish\`：`LocaForge.exe`、`catalog.json`、`payload\fmgworld-zh-0.2.1.zip`。
 补丁包由 `..\FMGWorld-汉化补丁-0.2.1\game` 打包而来，更新译文后重新构建即可。
 
 ### 发布新版本
@@ -40,13 +40,13 @@ C# WinForms，目标 .NET Framework 4.8（Win10/11 自带），64 位运行，ex
 ```
 
 - **发补丁更新**：改完译文后，把 `catalog.json` 的 `revision` +1，对应 `patches[].patchVersion` 改新
-- **发工具更新**：把 `FMGPatcher.csproj` 的 `<Version>` 改新
+- **发工具更新**：把 `LocaForge.csproj` 的 `<Version>` 改新
 - 两者可以一起发。每个 Release 都带完整的工具包和一份签名的 `update.json`，工具从 `releases/latest` 读取它
 
 ### 自动更新怎么工作
 
 1. 工具读取 `releases/latest/download/update.json` 和 `update.json.sig`，用内置公钥（`src/Core/UpdateKey.cs`）验证签名，不通过就忽略
-2. 清单里的补丁 `revision` 比本地大：下载补丁包到 `%LOCALAPPDATA%\FMGPatcher\updates`，逐个校验大小和 SHA-256，全部通过后才写入新的 `catalog.json`
+2. 清单里的补丁 `revision` 比本地大：下载补丁包到 `%LOCALAPPDATA%\LocaForge\updates`，逐个校验大小和 SHA-256，全部通过后才写入新的 `catalog.json`
 3. 清单里的工具版本比本地新：下载新 exe 并校验，把正在运行的 exe 改名为 `.old`，新 exe 放回原名后重新打开
 4. 已装过旧补丁的游戏会显示"可更新"，点"更新汉化补丁"即先还原再装新版
 
@@ -69,16 +69,16 @@ C# WinForms，目标 .NET Framework 4.8（Win10/11 自带），64 位运行，ex
 ### 命令行（提权和测试用）
 
 ```
-FMGPatcher.exe --scan
-FMGPatcher.exe --status    "游戏目录"
-FMGPatcher.exe --install   "游戏目录"
-FMGPatcher.exe --uninstall "游戏目录"
-FMGPatcher.exe --check-update                 # 只检查
-FMGPatcher.exe --update                       # 下载并应用补丁更新和工具更新（不重启）
-FMGPatcher.exe --render out.png ["游戏目录"]   # 把界面画成图片
+LocaForge.exe --scan
+LocaForge.exe --status    "游戏目录"
+LocaForge.exe --install   "游戏目录"
+LocaForge.exe --uninstall "游戏目录"
+LocaForge.exe --check-update                 # 只检查
+LocaForge.exe --update                       # 下载并应用补丁更新和工具更新（不重启）
+LocaForge.exe --render out.png ["游戏目录"]   # 把界面画成图片
 ```
 
-测试时可用环境变量 `FMGPATCHER_UPDATE_BASE` 把更新源指向本地服务器，`FMGPATCHER_CACHE_DIR` 换一个缓存目录。
+测试时可用环境变量 `LOCAFORGE_UPDATE_BASE` 把更新源指向本地服务器，`LOCAFORGE_CACHE_DIR` 换一个缓存目录。
 
 ### 加新游戏或新版本
 

@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Security.Principal;
 
-namespace FMGPatcher.Core
+namespace LocaForge.Core
 {
     public static class AppInfo
     {
@@ -24,23 +24,33 @@ namespace FMGPatcher.Core
         public static string CatalogPath => Path.Combine(ExeDir, "catalog.json");
 
         /// <summary>联网下载的补丁清单和补丁包放在这里（工具所在目录可能没有写权限）。</summary>
-        public static string CacheDir => Environment.GetEnvironmentVariable("FMGPATCHER_CACHE_DIR")   // 测试用
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FMGPatcher", "updates");
+        public static string CacheDir => Environment.GetEnvironmentVariable("LOCAFORGE_CACHE_DIR")   // 测试用
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LocaForge", "updates");
+
+        /// <summary>改名前（FMGPatcher 0.2.x）的下载缓存，只读不写；新缓存没有更新的清单时沿用它。</summary>
+        static string LegacyCacheDir => Environment.GetEnvironmentVariable("LOCAFORGE_CACHE_DIR") != null ? null
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FMG" + "Patcher", "updates");
 
         /// <summary>内置清单和下载缓存里的清单，取 revision 大的那份。</summary>
         public static Catalog LoadCatalog()
         {
-            Catalog bundled = null, cached = null;
-            if (File.Exists(CatalogPath)) { bundled = Json.Load<Catalog>(CatalogPath); bundled.Bind(ExeDir); }
-            var cachePath = Path.Combine(CacheDir, "catalog.json");
-            try
+            Catalog best = null;
+            if (File.Exists(CatalogPath)) { best = Json.Load<Catalog>(CatalogPath); best.Bind(ExeDir); }
+            foreach (var dir in new[] { CacheDir, LegacyCacheDir })
             {
-                if (File.Exists(cachePath)) { cached = Json.Load<Catalog>(cachePath); cached.Bind(CacheDir); }
+                if (dir == null) continue;
+                try
+                {
+                    var path = Path.Combine(dir, "catalog.json");
+                    if (!File.Exists(path)) continue;
+                    var c = Json.Load<Catalog>(path);
+                    c.Bind(dir);
+                    if (best == null || c.Revision > best.Revision) best = c;
+                }
+                catch { } // 缓存损坏就忽略，下次更新会重写
             }
-            catch { cached = null; } // 缓存损坏就忽略，下次更新会重写
-            if (bundled == null && cached == null) throw new PatchException("缺少 catalog.json，请重新下载工具");
-            if (bundled == null) return cached;
-            return cached != null && cached.Revision > bundled.Revision ? cached : bundled;
+            if (best == null) throw new PatchException("缺少 catalog.json，请重新下载工具");
+            return best;
         }
 
         public static bool VersionLess(string a, string b)
@@ -62,7 +72,7 @@ namespace FMGPatcher.Core
     /// </summary>
     public static class Elevation
     {
-        public static string ResultFile => Path.Combine(Path.GetTempPath(), "FMGPatcher-elevated-result.txt");
+        public static string ResultFile => Path.Combine(Path.GetTempPath(), "LocaForge-elevated-result.txt");
 
         /// <returns>null 表示成功，否则为错误信息</returns>
         public static string RunElevated(string verb, string gameDir)
