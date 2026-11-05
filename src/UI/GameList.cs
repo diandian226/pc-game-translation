@@ -20,6 +20,9 @@ namespace LocaForge.UI
         public readonly List<GameItem> Items = new List<GameItem>();
         int selected = -1, hover = -1;
         public event EventHandler SelectionChanged;
+        /// <summary>在某一行上点右键（参数是屏幕坐标），或在选中行上按 Delete / 菜单键。</summary>
+        public event Action<GameItem, Point> RowMenuRequested;
+        public event Action<GameItem> RemoveRequested;
         public string EmptyText = "正在查找游戏";
         public string EmptyHint = "";
 
@@ -69,12 +72,35 @@ namespace LocaForge.UI
         }
         protected override void OnMouseLeave(EventArgs e) { hover = -1; Invalidate(); base.OnMouseLeave(e); }
         protected override void OnMouseDown(MouseEventArgs e) { Focus(); Select(HitTest(e.Location)); base.OnMouseDown(e); }
-        protected override bool IsInputKey(Keys k) => k == Keys.Up || k == Keys.Down || base.IsInputKey(k);
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            if (e.Button != MouseButtons.Right) return;
+            int i = HitTest(e.Location);
+            if (i >= 0 && i == selected) RowMenuRequested?.Invoke(Items[i], PointToScreen(e.Location));
+        }
+        protected override bool IsInputKey(Keys k) => k == Keys.Up || k == Keys.Down || k == Keys.Delete || k == Keys.Apps || base.IsInputKey(k);
         protected override void OnKeyDown(KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Up) Select(selected - 1);
             if (e.KeyCode == Keys.Down) Select(selected + 1);
+            if (e.KeyCode == Keys.Delete && Selected != null) RemoveRequested?.Invoke(Selected);
+            if (e.KeyCode == Keys.Apps && Selected != null)
+            {
+                var r = new Rectangle(0, AutoScrollPosition.Y + selected * (RowH + Gap), Width, RowH);
+                RowMenuRequested?.Invoke(Selected, PointToScreen(new Point(r.X + Theme.Dp(48), r.Bottom)));
+            }
             base.OnKeyDown(e);
+        }
+
+        /// <summary>从列表里拿掉一项，选中项落到相邻的一行。</summary>
+        public void Remove(GameItem item)
+        {
+            int i = Items.IndexOf(item);
+            if (i < 0) return;
+            Items.RemoveAt(i);
+            var next = Items.Count == 0 ? null : Items[Math.Min(i, Items.Count - 1)].Game.Dir;
+            SetItems(new List<GameItem>(Items), next);
         }
         protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
         protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }

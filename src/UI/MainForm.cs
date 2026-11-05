@@ -103,6 +103,8 @@ namespace LocaForge.UI
 
             list.BackColor = Theme.Sunk;
             list.SelectionChanged += (s, e) => ShowGame(list.Selected);
+            list.RowMenuRequested += ShowRowMenu;
+            list.RemoveRequested += RemoveFromList;
             btnScan.Click += (s, e) => ToggleScan();
             btnBrowse.Click += (s, e) => Browse();
             btnFeedback.Click += (s, e) => OpenSubmission(CommunityLinks.Feedback);
@@ -414,7 +416,9 @@ namespace LocaForge.UI
                     }
                     try { found.AddRange(GameLocator.FindAll(catalog, includeDisk, hint, ct)); }
                     catch (OperationCanceledException) { }
+                    var hidden = HiddenDirs.Load();
                     return found
+                        .Where(c => !hidden.Contains(c.Dir))          // 用户右键移除过的不再加回来
                         .GroupBy(c => c.Dir, StringComparer.OrdinalIgnoreCase).Select(gr => gr.First())
                         .Select(MakeItem).ToList();
                 });
@@ -475,6 +479,7 @@ namespace LocaForge.UI
                 return;
             }
             if (remember) KnownDirs.Add(c.Dir);
+            HiddenDirs.Remove(c.Dir);   // 手动选回来的，取消"已移除"
             var items = list.Items.Where(i => !string.Equals(i.Game.Dir, c.Dir, StringComparison.OrdinalIgnoreCase)).ToList();
             items.Insert(0, MakeItem(c));
             list.SetItems(items, c.Dir);
@@ -695,9 +700,67 @@ namespace LocaForge.UI
             try { using (Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })) { } } catch { }
         }
 
+        /// <summary>
+        /// 直接在浏览器里打开 GitHub 表单。不要先弹自己的窗口：那样前台会被它占住，浏览器就只能开在后面。
+        /// 只有真的打不开时才显示带"复制链接"的备用窗口。
+        /// </summary>
         void OpenSubmission(string url)
         {
-            new SubmissionForm(url == CommunityLinks.Feedback ? "问题反馈" : "提交想汉化的游戏", url).Show(this);
+            var title = url == CommunityLinks.Feedback ? "问题反馈" : "提交想汉化的游戏";
+            try { BrowserLauncher.Open(url); }
+            catch (Exception ex)
+            {
+                using (var f = new SubmissionForm(title, url, ex.Message)) f.ShowDialog(this);
+            }
+        }
+
+        // ================= 列表右键菜单 =================
+        void ShowRowMenu(GameItem item, Point screen)
+        {
+            if (busy) return;
+            var menu = new ContextMenuStrip
+            {
+                Font = Theme.Body,
+                ShowImageMargin = false,
+                BackColor = Theme.Surface,
+                ForeColor = Theme.Text,
+                Renderer = new ToolStripProfessionalRenderer(new MenuColors()),
+                Padding = new Padding(Theme.Dp(4)),
+            };
+            menu.Items.Add(MenuItem("打开游戏目录", () => OpenFolder(item.Game.Dir)));
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(MenuItem("从列表中移除", () => RemoveFromList(item)));
+            menu.Closed += (s, e) => BeginInvoke(new Action(menu.Dispose));
+            menu.Show(screen);
+        }
+
+        static ToolStripMenuItem MenuItem(string text, Action onClick)
+        {
+            var mi = new ToolStripMenuItem(text) { Padding = new Padding(Theme.Dp(8), Theme.Dp(6), Theme.Dp(16), Theme.Dp(6)) };
+            mi.Click += (s, e) => onClick();
+            return mi;
+        }
+
+        /// <summary>只是不在列表里显示，不删除任何文件；以后自动搜索也不再加回来，手动选择该目录即可恢复。</summary>
+        void RemoveFromList(GameItem item)
+        {
+            if (busy || item == null) return;
+            HiddenDirs.Add(item.Game.Dir);
+            KnownDirs.Remove(item.Game.Dir);
+            list.Remove(item);
+            side.Invalidate();
+        }
+
+        sealed class MenuColors : ProfessionalColorTable
+        {
+            public override Color MenuItemSelected => Theme.Hover;
+            public override Color MenuItemSelectedGradientBegin => Theme.Hover;
+            public override Color MenuItemSelectedGradientEnd => Theme.Hover;
+            public override Color MenuItemBorder => Theme.Hover;
+            public override Color MenuBorder => Theme.BorderStrong;
+            public override Color ToolStripDropDownBackground => Theme.Surface;
+            public override Color SeparatorDark => Theme.Border;
+            public override Color SeparatorLight => Theme.Surface;
         }
 
         // ================= 其他 =================
@@ -793,6 +856,50 @@ namespace LocaForge.UI
                 all.Insert(0, dir);
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
                 File.WriteAllLines(FilePath, all.Take(20));
+            }
+            catch { }
+        }
+
+        public static void Remove(string dir)
+        {
+            try
+            {
+                var all = Load();
+                if (all.RemoveAll(d => string.Equals(d, dir, StringComparison.OrdinalIgnoreCase)) == 0) return;
+                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
+                File.WriteAllLines(FilePath, all);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>用户右键"从列表中移除"的目录：自动搜索时跳过，手动选择该目录时恢复。</summary>
+    static class HiddenDirs
+    {
+        static string FilePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LocaForge", "hidden.txt");
+
+        public static HashSet<string> Load()
+        {
+            try
+            {
+                if (File.Exists(FilePath))
+                    return new HashSet<string>(File.ReadAllLines(FilePath).Where(l => l.Trim().Length > 0), StringComparer.OrdinalIgnoreCase);
+            }
+            catch { }
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        public static void Add(string dir) => Save(set => set.Add(dir));
+        public static void Remove(string dir) => Save(set => set.Remove(dir));
+
+        static void Save(Func<HashSet<string>, bool> change)
+        {
+            try
+            {
+                var set = Load();
+                if (!change(set)) return;
+                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
+                File.WriteAllLines(FilePath, set.OrderBy(d => d, StringComparer.OrdinalIgnoreCase));
             }
             catch { }
         }

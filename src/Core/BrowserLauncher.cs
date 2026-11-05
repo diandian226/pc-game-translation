@@ -47,16 +47,31 @@ namespace LocaForge.Core
                 throw new ArgumentException("提交链接无效。", nameof(url));
         }
 
+        [DllImport("user32.dll")] static extern bool AllowSetForegroundWindow(int processId);
+        const int ASFW_ANY = -1;
+
         internal static string Open(string url) => Open(url, ResolveBrowser, request =>
         {
             using (var process = Process.Start(request)) { }
         });
 
-        // Keep resolution and dispatch separate so fallback behavior can be checked without opening a browser.
+        /// <summary>
+        /// 打开网页并让浏览器到前台。
+        /// 浏览器通常已经在运行，新页面会交给已有的浏览器进程；Windows 默认不允许它抢前台，
+        /// 结果是页面开在后面、用户以为没反应。所以先 AllowSetForegroundWindow 授权，再交给系统外壳打开，
+        /// 系统外壳不可用时（如关联损坏）再直接启动默认浏览器程序。
+        /// </summary>
         internal static string Open(string url, Func<string> resolve, Action<ProcessStartInfo> start)
         {
             Validate(url);
-            Exception directError = null;
+            try { AllowSetForegroundWindow(ASFW_ANY); } catch { }
+            Exception shellError = null;
+            try
+            {
+                start(new ProcessStartInfo(url) { UseShellExecute = true, Verb = "open" });
+                return "shell";
+            }
+            catch (Exception ex) { shellError = ex; }
             try
             {
                 var browser = resolve();
@@ -66,17 +81,8 @@ namespace LocaForge.Core
                     return "browser";
                 }
             }
-            catch (Exception ex) { directError = ex; }
-            try
-            {
-                start(new ProcessStartInfo(url) { UseShellExecute = true, Verb = "open" });
-                return "shell";
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("无法自动打开浏览器，请复制链接后手动打开。",
-                    directError == null ? ex : new AggregateException(directError, ex));
-            }
+            catch (Exception ex) { shellError = new AggregateException(shellError, ex); }
+            throw new InvalidOperationException("无法自动打开浏览器，请复制链接后手动打开。", shellError);
         }
     }
 }

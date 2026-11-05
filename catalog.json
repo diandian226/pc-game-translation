@@ -1,5 +1,5 @@
 {
-  "revision": 3,
+  "revision": 4,
   "games": [
     {
       "id": "fmgworld",
@@ -50,6 +50,7 @@
       "id": "realm-of-evergrow",
       "name": "万物生长领域",
       "engine": "godot",
+      "exeCheck": "godot",
       "exeNames": [
         "Realm_of_Evergrow*.exe"
       ],

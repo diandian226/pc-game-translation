@@ -11,7 +11,8 @@ namespace LocaForge.UI
         readonly Label message;
         readonly FlatButton retry;
 
-        internal SubmissionForm(string title, string url)
+        /// <summary>备用窗口：浏览器打不开时显示原因、链接和"复制链接"。</summary>
+        internal SubmissionForm(string title, string url, string error)
         {
             this.url = url;
             Text = title;
@@ -24,7 +25,7 @@ namespace LocaForge.UI
             AutoScaleMode = AutoScaleMode.None;
             ClientSize = new Size(Theme.Dp(640), Theme.Dp(240));
             int pad = Theme.Dp(24), width = ClientSize.Width - pad * 2;
-            message = new Label { Text = "正在打开默认浏览器……", ForeColor = Theme.Text, Bounds = new Rectangle(pad, pad, width, Theme.Dp(48)) };
+            message = new Label { Text = error, ForeColor = Theme.Warn, Bounds = new Rectangle(pad, pad, width, Theme.Dp(48)) };
             var address = new TextBox { ReadOnly = true, Text = url, Font = Theme.Caption, Bounds = new Rectangle(pad, Theme.Dp(80), width, Theme.Dp(28)) };
             var note = new Label { Text = "在 GitHub 中填写后自行提交，需要登录账号。若页面没出现，可复制上方链接。", ForeColor = Theme.TextSecondary, Bounds = new Rectangle(pad, Theme.Dp(120), width, Theme.Dp(36)) };
             retry = new FlatButton("重新打开", ButtonKind.Ink, Glyph.Open) { Bounds = new Rectangle(pad, Theme.Dp(178), Theme.Dp(150), Theme.Dp(40)) };
@@ -41,13 +42,6 @@ namespace LocaForge.UI
             CancelButton = null;
         }
 
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-            // Show the fallback first, then let the browser take focus; do not hide the result in a background task.
-            BeginInvoke(new Action(OpenBrowser));
-        }
-
         void OpenBrowser()
         {
             if (IsDisposed) return;
@@ -55,11 +49,10 @@ namespace LocaForge.UI
             try
             {
                 BrowserLauncher.Open(url);
-                message.Text = "已请求在浏览器中打开页面。若没有显示，请点“复制链接”手动打开。";
-                message.ForeColor = Theme.Text;
+                Close();   // 打开成功就关掉自己，把前台让给浏览器
             }
             catch (Exception ex) { message.Text = ex.Message; message.ForeColor = Theme.Warn; }
-            finally { retry.Enabled = true; }
+            finally { if (!IsDisposed) retry.Enabled = true; }
         }
     }
 }

@@ -39,6 +39,8 @@ namespace LocaForge.Core
         [DataMember(Name = "steamAppId")] public string SteamAppId;
         /// <summary>引擎，仅用于说明（renpy / godot）。</summary>
         [DataMember(Name = "engine")] public string Engine;
+        /// <summary>按文件内容确认 exe 属于该引擎，用来排除同名的安装包等（目前支持 godot）。</summary>
+        [DataMember(Name = "exeCheck")] public string ExeCheck;
         /// <summary>存档目录，可含 %APPDATA% 等环境变量；不写时按 Ren'Py 规则推算。</summary>
         [DataMember(Name = "saveDirectory")] public string SaveDirectory;
         /// <summary>扫描磁盘时优先进入的文件夹名。</summary>
