@@ -143,7 +143,7 @@ namespace FMGPatcher.UI
             emptyBrowse.Click += (s, e) => Browse();
             emptyCard.Controls.AddRange(new Control[] { emptyIcon, emptyHeading, emptyBody, emptyScan, emptyBrowse });
 
-            btnOpen.Click += (s, e) => { if (list.Selected != null) Process.Start("explorer.exe", "\"" + list.Selected.Game.Dir + "\""); };
+            btnOpen.Click += (s, e) => OpenFolder(list.Selected?.Game.Dir);
             gameCard.Controls.AddRange(new Control[] { gameIcon, gameName, gamePath, btnOpen, slip });
 
             btnInstall.Click += async (s, e) => await RunInstall();
@@ -226,7 +226,7 @@ namespace FMGPatcher.UI
                 var save = GameInspector.SaveDirectory(g);
                 slip.SetRows(
                     new Slip.Row { Key = "补丁适配", Value = patch != null ? g.Profile.Name + " " + patch.GameVersion : "无" },
-                    new Slip.Row { Key = "本机版本", Value = s?.Version ?? "读不到版本号" },
+                    new Slip.Row { Key = "本机版本", Value = s?.Version ?? "无法识别" },
                     new Slip.Row { Key = "本机状态", Value = StateText(s), Dot = GameList.StateColor(s) },
                     new Slip.Row { Key = "汉化补丁", Value = patch != null ? PayloadInfo(patch) : "暂无" },
                     new Slip.Row { Key = "存档位置", Value = save == null ? "未知" : Directory.Exists(save) ? ShortenAppData(save) : "还没有存档" });
@@ -236,6 +236,20 @@ namespace FMGPatcher.UI
             UpdateButtons();
             LayoutMain();
             side.Invalidate();
+        }
+
+        /// <summary>交给系统外壳打开文件夹（复用已运行的资源管理器），不自己启动 explorer.exe。</summary>
+        void OpenFolder(string dir)
+        {
+            if (string.IsNullOrEmpty(dir)) return;
+            try
+            {
+                using (Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true, Verb = "open" })) { }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "无法打开文件夹：" + ex.Message + "\n\n" + dir, "打开目录", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         static string ShortenAppData(string path)

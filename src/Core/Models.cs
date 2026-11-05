@@ -21,6 +21,8 @@ namespace FMGPatcher.Core
         [DataMember(Name = "markers")] public List<string> Markers = new List<string>();
         [DataMember(Name = "versionFile")] public string VersionFile;
         [DataMember(Name = "versionRegex")] public string VersionRegex;
+        /// <summary>官方各版本关键文件（如 game/scripts.rpa）的大小和哈希，用来识别版本、排除修改版。</summary>
+        [DataMember(Name = "versionFingerprints")] public List<FileHash> VersionFingerprints = new List<FileHash>();
         /// <summary>手动复制过补丁的特征文件：没有安装记录但这些文件存在，就判定为"已手动汉化"。</summary>
         [DataMember(Name = "patchedMarkers")] public List<string> PatchedMarkers = new List<string>();
         [DataMember(Name = "steamAppId")] public string SteamAppId;
@@ -51,6 +53,7 @@ namespace FMGPatcher.Core
     [DataContract]
     public sealed class FileHash
     {
+        [DataMember(Name = "version")] public string Version;
         [DataMember(Name = "path")] public string Path;
         [DataMember(Name = "size")] public long Size;
         [DataMember(Name = "sha256")] public string Sha256;

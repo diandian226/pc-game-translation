@@ -8,13 +8,16 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net48</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- SDK 项目对 net48 的 WinExe 默认编成 x86；32 位进程启动 explorer.exe 会被重定向到 SysWOW64 而报 0xc0000142 -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <AssemblyName>FMGPatcher</AssemblyName>
     <RootNamespace>FMGPatcher</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>assets\app.ico</ApplicationIcon>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Product>FMGWorld 电脑版汉化工具</Product>
     <Company>FMGWorld 汉化组</Company>
     <Copyright>非官方汉化，仅供学习交流</Copyright>

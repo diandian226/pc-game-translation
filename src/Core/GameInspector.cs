@@ -26,7 +26,7 @@ namespace FMGPatcher.Core
         {
             var p = game.Profile;
             var s = new GameStatus { Game = game };
-            s.Version = ReadVersion(p, game.Dir);
+            s.Version = DetectVersion(p, game.Dir, out var versionProblem);
             s.Record = PatchEngine.ReadRecord(game.Dir);
 
             if (s.Record != null)
@@ -36,9 +36,9 @@ namespace FMGPatcher.Core
             else
                 s.State = PatchState.NotPatched;
 
-            if (s.Version == null)
+            if (versionProblem != null || s.Version == null)
             {
-                s.Problem = "读不到游戏版本号";
+                s.Problem = versionProblem ?? "读不到游戏版本号";
                 return s;
             }
             s.MatchedPatch = p.Patches.FirstOrDefault(x => x.GameVersion == s.Version);
@@ -59,10 +59,41 @@ namespace FMGPatcher.Core
         }
 
         /// <summary>
-        /// Ren'Py 的游戏版本写在 options.rpy 的 config.version 里。
+        /// 识别游戏版本，以脚本包指纹为准：
+        /// 官方原版的脚本都打包在 game/scripts.rpa 里，目录里没有单独的 options.rpy，
+        /// 所以先按 catalog 里的 versionFingerprints 比对 scripts.rpa 的大小和哈希（补丁不改它，汉化前后都能认）。
+        /// 指纹文件存在却对不上任何已知版本 → 修改版或未收录的新版本，不允许安装。
+        /// catalog 没有为这个游戏写指纹时，退回读 options.rpy 的 config.version。
         /// 注意 script_version.txt 记录的是 Ren'Py 引擎版本（如 (8, 5, 3)），不是游戏版本。
         /// </summary>
-        public static string ReadVersion(GameProfile p, string dir)
+        public static string DetectVersion(GameProfile p, string dir, out string problem)
+        {
+            problem = null;
+            var text = ReadVersionText(p, dir);
+            if (p.VersionFingerprints.Count == 0) return text;
+
+            bool anyFileFound = false;
+            foreach (var group in p.VersionFingerprints.GroupBy(f => f.Path, StringComparer.OrdinalIgnoreCase))
+            {
+                var full = Path.Combine(dir, group.Key.Replace('/', '\\'));
+                if (!File.Exists(full)) continue;
+                anyFileFound = true;
+                long size = new FileInfo(full).Length;
+                var candidates = group.Where(f => f.Size == size).ToList();
+                if (candidates.Count == 0) continue;
+                string hash;
+                try { hash = FileOps.Sha256(full); } catch { continue; }
+                var hit = candidates.FirstOrDefault(f => string.Equals(f.Sha256, hash, StringComparison.OrdinalIgnoreCase));
+                if (hit != null) return hit.Version;
+            }
+
+            problem = anyFileFound
+                ? "不是已知的官方版本，可能是修改版，不能安装"
+                : "缺少游戏脚本包，无法识别版本";
+            return text;
+        }
+
+        static string ReadVersionText(GameProfile p, string dir)
         {
             try
             {

@@ -7,6 +7,14 @@
       "markers": [ "game", "renpy", "game/scripts.rpa" ],
       "versionFile": "game/options.rpy",
       "versionRegex": "define\\s+config\\.version\\s*=\\s*\"([^\"]+)\"",
+      "versionFingerprints": [
+        {
+          "version": "0.2.1",
+          "path": "game/scripts.rpa",
+          "size": 8633953,
+          "sha256": "1311449ec3f63f9711613e8da7ce90b9b0c5077fb64e33e11edac89eb692a9b3"
+        }
+      ],
       "patchedMarkers": [ "game/zz_fmg_fix_en_ui.rpy", "game/gui/fonts/ChineseUI.ttc" ],
       "steamAppId": "",
       "searchFolderNames": [ "FMGWorld", "fmgworld", "FMG World" ],
