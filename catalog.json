@@ -1,12 +1,18 @@
 {
-  "revision": 2,
+  "revision": 3,
   "games": [
     {
       "id": "fmgworld",
       "name": "FMGWorld",
       "engine": "renpy",
-      "exeNames": [ "FMGWorld.exe" ],
-      "markers": [ "game", "renpy", "game/scripts.rpa" ],
+      "exeNames": [
+        "FMGWorld.exe"
+      ],
+      "markers": [
+        "game",
+        "renpy",
+        "game/scripts.rpa"
+      ],
       "versionFile": "game/options.rpy",
       "versionRegex": "define\\s+config\\.version\\s*=\\s*\"([^\"]+)\"",
       "versionFingerprints": [
@@ -17,15 +23,22 @@
           "sha256": "1311449ec3f63f9711613e8da7ce90b9b0c5077fb64e33e11edac89eb692a9b3"
         }
       ],
-      "patchedMarkers": [ "game/zz_fmg_fix_en_ui.rpy", "game/gui/fonts/ChineseUI.ttc" ],
+      "patchedMarkers": [
+        "game/zz_fmg_fix_en_ui.rpy",
+        "game/gui/fonts/ChineseUI.ttc"
+      ],
       "steamAppId": "",
-      "searchFolderNames": [ "FMGWorld", "fmgworld", "FMG World" ],
+      "searchFolderNames": [
+        "FMGWorld",
+        "fmgworld",
+        "FMG World"
+      ],
       "patches": [
         {
           "id": "fmgworld-zh-0.2.1",
           "title": "简体中文汉化 0.2.1",
           "gameVersion": "0.2.1",
-          "patchVersion": "0.2.1-pc1",
+          "patchVersion": "0.2.1-pc2",
           "payload": "payload/fmgworld-zh-0.2.1.zip",
           "payloadRoot": "",
           "removeStaleCompiled": true,
@@ -37,7 +50,9 @@
       "id": "realm-of-evergrow",
       "name": "万物生长领域",
       "engine": "godot",
-      "exeNames": [ "Realm_of_Evergrow*.exe" ],
+      "exeNames": [
+        "Realm_of_Evergrow*.exe"
+      ],
       "markers": [],
       "versionFingerprints": [
         {
@@ -47,22 +62,154 @@
           "sha256": "823508109bb5ff64dfdb37c01fa3c7e3307b7ddc252587510995b172023633a4"
         }
       ],
-      "patchedMarkers": [ "zh/zh_hook.gd", "zh/zh_patch.pck" ],
+      "patchedMarkers": [
+        "zh/zh_hook.gd",
+        "zh/zh_patch.pck"
+      ],
       "saveDirectory": "%APPDATA%/Godot/app_userdata/Realm of Evergrow",
       "steamAppId": "",
-      "searchFolderNames": [ "Realm", "Evergrow", "万物生长" ],
+      "searchFolderNames": [
+        "Realm",
+        "Evergrow",
+        "万物生长"
+      ],
       "patches": [
         {
           "id": "realm-of-evergrow-zh-0.3.4.2",
           "title": "简体中文汉化 0.3.4.2",
           "gameVersion": "0.3.4.2",
-          "patchVersion": "0.3.4.2-pc1",
+          "patchVersion": "0.3.4.2-pc2",
           "payload": "payload/realm-of-evergrow-zh-0.3.4.2.zip",
           "payloadRoot": "",
           "removeStaleCompiled": false,
           "requiredFiles": []
         }
       ]
+    },
+    {
+      "id": "inaparalleluniverse",
+      "name": "平行宇宙",
+      "engine": "renpy",
+      "exeNames": [
+        "InaParallelUniverse.exe"
+      ],
+      "markers": [
+        "game",
+        "renpy"
+      ],
+      "versionFile": "game/options.rpy",
+      "versionRegex": "define\\s+config\\.version\\s*=\\s*\"([^\\\"]+)\"",
+      "patchedMarkers": [
+        "game/zz_cn_patch.rpy"
+      ],
+      "steamAppId": "",
+      "searchFolderNames": [
+        "inaparalleluniverse",
+        "平行宇宙"
+      ],
+      "patches": [
+        {
+          "id": "inaparalleluniverse-zh-1.3p",
+          "title": "简体中文汉化 1.3p",
+          "gameVersion": "1.3p",
+          "patchVersion": "1.3p-pc1",
+          "payload": "payload/inaparalleluniverse-zh-1.3p.zip",
+          "payloadRoot": "",
+          "removeStaleCompiled": true,
+          "requiredFiles": []
+        }
+      ],
+      "versionFingerprints": [
+        {
+          "version": "1.3p",
+          "path": "game/assets.rpa",
+          "size": 380515940,
+          "sha256": "1573d94c684460eed6a48f3538be5e4b0319797f65d7549a71c51b0c8ec90590"
+        }
+      ]
+    },
+    {
+      "id": "outgrow",
+      "name": "女神制造者",
+      "engine": "renpy",
+      "exeNames": [
+        "Outgrow.exe"
+      ],
+      "markers": [
+        "game",
+        "renpy"
+      ],
+      "versionFile": "game/options.rpy",
+      "versionRegex": "define\\s+config\\.version\\s*=\\s*\"([^\\\"]+)\"",
+      "patchedMarkers": [
+        "game/zzzz_outgrow_chinese.rpy"
+      ],
+      "steamAppId": "",
+      "searchFolderNames": [
+        "outgrow",
+        "女神制造者"
+      ],
+      "patches": [
+        {
+          "id": "outgrow-zh-1.1.67",
+          "title": "简体中文汉化 1.1.67",
+          "gameVersion": "1.1.67",
+          "patchVersion": "1.1.67-pc1",
+          "payload": "payload/outgrow-zh-1.1.67.zip",
+          "payloadRoot": "",
+          "removeStaleCompiled": true,
+          "requiredFiles": []
+        }
+      ],
+      "versionFingerprints": [
+        {
+          "version": "1.1.67",
+          "path": "game/archive.rpa",
+          "size": 90831354,
+          "sha256": "2a15e0d2f3c2affeec5a70ed256065b3e4d80d51a70b7c441caee606fbec2e23"
+        }
+      ]
+    },
+    {
+      "id": "compulsiontogrow",
+      "name": "成长的冲动",
+      "engine": "renpy",
+      "exeNames": [
+        "CompulsionToGrow.exe"
+      ],
+      "markers": [
+        "game",
+        "renpy"
+      ],
+      "versionFile": "game/options.rpy",
+      "versionRegex": "define\\s+config\\.version\\s*=\\s*\"([^\\\"]+)\"",
+      "patchedMarkers": [
+        "game/fonts/NotoSansSC-Regular.otf"
+      ],
+      "steamAppId": "",
+      "searchFolderNames": [
+        "compulsiontogrow",
+        "成长的冲动"
+      ],
+      "patches": [
+        {
+          "id": "compulsiontogrow-zh-0.1.1",
+          "title": "简体中文汉化 0.1.1",
+          "gameVersion": "0.1.1",
+          "patchVersion": "0.1.1-pc1",
+          "payload": "payload/compulsiontogrow-zh-0.1.1.zip",
+          "payloadRoot": "",
+          "removeStaleCompiled": true,
+          "requiredFiles": [
+            {
+              "path": "game/beatemup_core.py",
+              "size": 223868,
+              "sha256": "dd7a9ed8dc7b7c7eca5d3d49aeb1f31ca0c560880b636bf369446ece2a3de2f6"
+            }
+          ]
+        }
+      ],
+      "versionFingerprints": []
     }
   ]
 }
