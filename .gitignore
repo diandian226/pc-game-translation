@@ -1,0 +1,16 @@
+# 构建产物
+bin/
+obj/
+build/
+publish/
+
+# 测试用的模拟游戏目录与截图
+tests/
+
+# 补丁包通过 GitHub Releases 发布，不进仓库
+*.zip
+*.zhtmp
+
+# 编辑器
+.vs/
+*.user

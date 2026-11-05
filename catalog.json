@@ -1,0 +1,27 @@
+{
+  "games": [
+    {
+      "id": "fmgworld",
+      "name": "FMGWorld",
+      "exeNames": [ "FMGWorld.exe" ],
+      "markers": [ "game", "renpy", "game/scripts.rpa" ],
+      "versionFile": "game/options.rpy",
+      "versionRegex": "define\\s+config\\.version\\s*=\\s*\"([^\"]+)\"",
+      "patchedMarkers": [ "game/zz_fmg_fix_en_ui.rpy", "game/gui/fonts/ChineseUI.ttc" ],
+      "steamAppId": "",
+      "searchFolderNames": [ "FMGWorld", "fmgworld", "FMG World" ],
+      "patches": [
+        {
+          "id": "fmgworld-zh-0.2.1",
+          "title": "简体中文汉化 0.2.1",
+          "gameVersion": "0.2.1",
+          "patchVersion": "0.2.1-pc1",
+          "payload": "payload/fmgworld-zh-0.2.1.zip",
+          "payloadRoot": "",
+          "removeStaleCompiled": true,
+          "requiredFiles": []
+        }
+      ]
+    }
+  ]
+}

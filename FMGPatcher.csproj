@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    目标 .NET Framework 4.8：Win10/11 自带运行库，生成的 exe 双击即用，体积只有几百 KB。
+    首次构建会从 NuGet 自动拉取 Microsoft.NETFramework.ReferenceAssemblies（仅编译期使用）。
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>FMGPatcher</AssemblyName>
+    <RootNamespace>FMGPatcher</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets\app.ico</ApplicationIcon>
+    <Version>0.1.0</Version>
+    <Product>FMGWorld 电脑版汉化工具</Product>
+    <Company>FMGWorld 汉化组</Company>
+    <Copyright>非官方汉化，仅供学习交流</Copyright>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Runtime.Serialization" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <Compile Remove="publish\**" />
+    <None Include="catalog.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
