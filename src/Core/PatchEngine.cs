@@ -46,7 +46,7 @@ namespace FMGPatcher.Core
             Json.Save(Path.Combine(RecordDir(gameDir), RecordFile), r);
 
         public static string PayloadPath(PatchPackage patch) =>
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, patch.Payload.Replace('/', '\\'));
+            Path.Combine(patch.BaseDir ?? AppDomain.CurrentDomain.BaseDirectory, patch.Payload.Replace('/', '\\'));
 
         public static long PayloadSize(PatchPackage patch)
         {

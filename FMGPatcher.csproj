@@ -17,7 +17,7 @@
     <RootNamespace>FMGPatcher</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>assets\app.ico</ApplicationIcon>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <Product>FMGWorld 电脑版汉化工具</Product>
     <Company>FMGWorld 汉化组</Company>
     <Copyright>非官方汉化，仅供学习交流</Copyright>
@@ -29,6 +29,7 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
   <ItemGroup>

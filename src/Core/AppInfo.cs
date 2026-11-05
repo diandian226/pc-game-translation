@@ -17,12 +17,36 @@ namespace FMGPatcher.Core
             }
         }
 
-        public static string CatalogPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "catalog.json");
+        public static System.Version ParsedVersion => Assembly.GetExecutingAssembly().GetName().Version;
 
+        public static string ExeDir => AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
+        public static string ExePath => Process.GetCurrentProcess().MainModule.FileName;
+        public static string CatalogPath => Path.Combine(ExeDir, "catalog.json");
+
+        /// <summary>联网下载的补丁清单和补丁包放在这里（工具所在目录可能没有写权限）。</summary>
+        public static string CacheDir => Environment.GetEnvironmentVariable("FMGPATCHER_CACHE_DIR")   // 测试用
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FMGPatcher", "updates");
+
+        /// <summary>内置清单和下载缓存里的清单，取 revision 大的那份。</summary>
         public static Catalog LoadCatalog()
         {
-            if (!File.Exists(CatalogPath)) throw new PatchException("缺少 catalog.json，请重新下载工具");
-            return Json.Load<Catalog>(CatalogPath);
+            Catalog bundled = null, cached = null;
+            if (File.Exists(CatalogPath)) { bundled = Json.Load<Catalog>(CatalogPath); bundled.Bind(ExeDir); }
+            var cachePath = Path.Combine(CacheDir, "catalog.json");
+            try
+            {
+                if (File.Exists(cachePath)) { cached = Json.Load<Catalog>(cachePath); cached.Bind(CacheDir); }
+            }
+            catch { cached = null; } // 缓存损坏就忽略，下次更新会重写
+            if (bundled == null && cached == null) throw new PatchException("缺少 catalog.json，请重新下载工具");
+            if (bundled == null) return cached;
+            return cached != null && cached.Revision > bundled.Revision ? cached : bundled;
+        }
+
+        public static bool VersionLess(string a, string b)
+        {
+            System.Version va, vb;
+            return System.Version.TryParse(a, out va) && System.Version.TryParse(b, out vb) && va < vb;
         }
 
         public static bool IsAdmin()

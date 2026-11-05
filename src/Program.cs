@@ -14,6 +14,7 @@ namespace FMGPatcher
         [STAThread]
         static int Main(string[] args)
         {
+            UpdateService.CleanupOldExe();
             if (args.Length > 0 && args[0] == "--render") return Render(args);
             if (args.Length > 0) return RunCommandLine(args);
 
@@ -38,6 +39,8 @@ namespace FMGPatcher
             Pump(300);
             var until = DateTime.Now.AddSeconds(20);
             while (form.Scanning && DateTime.Now < until) Pump(50);
+            Pump(300);
+            while (form.CheckingUpdate && DateTime.Now < until) Pump(50);
             if (args.Length > 2) form.AddUserPath(args[2], remember: false);
             Pump(300);
             using (var bmp = new System.Drawing.Bitmap(form.Width, form.Height))
@@ -55,6 +58,8 @@ namespace FMGPatcher
         ///   FMGPatcher.exe --status    "游戏目录"
         ///   FMGPatcher.exe --install   "游戏目录"
         ///   FMGPatcher.exe --uninstall "游戏目录"
+        ///   FMGPatcher.exe --check-update      只检查
+        ///   FMGPatcher.exe --update            下载并应用补丁更新和工具更新（不重启）
         /// </summary>
         static int RunCommandLine(string[] args)
         {
@@ -75,6 +80,22 @@ namespace FMGPatcher
                         Console.WriteLine(g.Source + "\t" + g.Dir);
                     return 0;
                 }
+                if (cmd == "--check-update" || cmd == "--update")
+                {
+                    var info = UpdateService.CheckAsync(catalog, CancellationToken.None).GetAwaiter().GetResult();
+                    Console.WriteLine("当前工具	" + AppInfo.Version + "	清单 revision " + catalog.Revision + "（" + catalog.BaseDir + "）");
+                    Console.WriteLine("最新工具	" + (info.Manifest.Tool?.Version ?? "无") + (info.ToolUpdate ? "	可更新" : ""));
+                    Console.WriteLine("最新清单	" + (info.Manifest.Catalog?.Revision.ToString() ?? "无") +
+                        (info.CatalogUpdate ? "	可更新" : info.CatalogNeedsTool ? "	需先更新工具" : ""));
+                    foreach (var c in info.PatchChanges) Console.WriteLine("  " + c);
+                    if (cmd == "--update")
+                    {
+                        var pr = new SyncProgress(progress);
+                        if (info.CatalogUpdate) UpdateService.ApplyCatalogAsync(info, pr, CancellationToken.None).GetAwaiter().GetResult();
+                        if (info.ToolUpdate) Console.WriteLine("新工具：" + UpdateService.ApplyToolAsync(info, pr, CancellationToken.None).GetAwaiter().GetResult());
+                    }
+                    return 0;
+                }
                 if (args.Length < 2) throw new PatchException("缺少游戏目录参数");
                 var game = GameLocator.FromUserPath(catalog, args[1]) ?? throw new PatchException("这个目录不是支持的游戏：" + args[1]);
                 var status = GameInspector.Inspect(game);
@@ -83,7 +104,8 @@ namespace FMGPatcher
                     case "--status":
                         Console.WriteLine("版本\t" + (status.Version ?? "未知"));
                         Console.WriteLine("状态\t" + status.State);
-                        Console.WriteLine("补丁\t" + (status.MatchedPatch?.Id ?? "无"));
+                        Console.WriteLine("补丁\t" + (status.MatchedPatch?.Id ?? "无") + " " + (status.MatchedPatch?.PatchVersion ?? ""));
+                        if (status.PatchOutdated) Console.WriteLine("可更新\t" + status.Record.PatchVersion + " -> " + status.MatchedPatch.PatchVersion);
                         if (status.Problem != null) Console.WriteLine("问题\t" + status.Problem);
                         return 0;
                     case "--install":

@@ -3,7 +3,7 @@ using System.Drawing.Drawing2D;
 
 namespace FMGPatcher.UI
 {
-    public enum Glyph { None, Search, Folder, Help, Chevron, Gamepad, Install, Restore, Open }
+    public enum Glyph { None, Search, Folder, Help, Chevron, Gamepad, Install, Restore, Open, Refresh }
 
     /// <summary>界面里仅有的几个线条图标，统一 1.5 笔画、圆头，与安卓版 LineIcon 同一画法。</summary>
     static class LineIcon
@@ -54,6 +54,10 @@ namespace FMGPatcher.UI
                         g.DrawLine(pen, P(0.5f, 0.14f), P(0.5f, 0.6f));
                         g.DrawLines(pen, new[] { P(0.3f, 0.42f), P(0.5f, 0.62f), P(0.7f, 0.42f) });
                         g.DrawLines(pen, new[] { P(0.16f, 0.66f), P(0.16f, 0.84f), P(0.84f, 0.84f), P(0.84f, 0.66f) });
+                        break;
+                    case Glyph.Refresh:
+                        g.DrawArc(pen, x + w * 0.18f, y + h * 0.18f, w * 0.64f, h * 0.64f, -60, 300);
+                        g.DrawLines(pen, new[] { P(0.62f, 0.16f), P(0.76f, 0.24f), P(0.7f, 0.4f) });
                         break;
                     case Glyph.Restore:
                         g.DrawArc(pen, x + w * 0.18f, y + h * 0.18f, w * 0.64f, h * 0.64f, 200, 290);

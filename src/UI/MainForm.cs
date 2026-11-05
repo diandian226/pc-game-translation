@@ -33,6 +33,17 @@ namespace FMGPatcher.UI
         readonly Panel main = new Panel();
         readonly TextView title = new TextView("安装汉化补丁", () => Theme.Title, Theme.Text);
         readonly FlatButton btnHelp = new FlatButton("使用说明", ButtonKind.Tint, Glyph.Help) { Radius = 16 };
+        readonly FlatButton btnCheckUpdate = new FlatButton("检查更新", ButtonKind.Ghost, Glyph.Refresh);
+
+        // 更新提示卡片：只在有更新、或手动检查后出现
+        UpdateInfo pendingUpdate;
+        bool checkingUpdate;
+        readonly Card updateCard = new Card { Visible = false };
+        readonly StatusLine updateLine = new StatusLine();
+        readonly TextView updateSub = new TextView("", () => Theme.Caption, Theme.TextMuted);
+        readonly FlatButton btnApplyUpdate = new FlatButton("立即更新", ButtonKind.Ink, Glyph.Install);
+        readonly FlatButton btnLater = new FlatButton("稍后", ButtonKind.Ghost);
+        readonly ProgressLine updateProgress = new ProgressLine { Visible = false };
 
         readonly Card emptyCard = new Card();
         readonly GameIconBox emptyIcon = new GameIconBox();
@@ -138,6 +149,10 @@ namespace FMGPatcher.UI
             main.Resize += (s, e) => LayoutMain();
 
             btnHelp.Click += (s, e) => ShowHelp();
+            btnCheckUpdate.Click += async (s, e) => await CheckUpdates(silent: false);
+            btnApplyUpdate.Click += async (s, e) => await ApplyUpdate();
+            btnLater.Click += (s, e) => { updateCard.Visible = false; LayoutMain(); };
+            updateCard.Controls.AddRange(new Control[] { updateLine, updateSub, btnApplyUpdate, btnLater, updateProgress });
 
             emptyScan.Click += (s, e) => ToggleScan();
             emptyBrowse.Click += (s, e) => Browse();
@@ -152,7 +167,7 @@ namespace FMGPatcher.UI
             statusPanel.Controls.AddRange(new Control[] { status, progress, detail });
             actionCard.Controls.AddRange(new Control[] { btnInstall, btnRestore, statusPanel });
 
-            main.Controls.AddRange(new Control[] { title, btnHelp, emptyCard, gameCard, actionCard, footnote });
+            main.Controls.AddRange(new Control[] { title, btnCheckUpdate, btnHelp, updateCard, emptyCard, gameCard, actionCard, footnote });
             Controls.Add(main);
             main.BringToFront();
         }
@@ -165,10 +180,28 @@ namespace FMGPatcher.UI
             var origin = main.AutoScrollPosition;
             int x = pad + origin.X, y = Theme.Dp(28) + origin.Y;
 
-            title.Bounds = new Rectangle(x, y, w - Theme.Dp(140), Theme.Dp(36));
-            int hw = btnHelp.PreferredWidth();
+            int hw = btnHelp.PreferredWidth(), uw = btnCheckUpdate.PreferredWidth();
             btnHelp.Bounds = new Rectangle(x + w - hw, y + Theme.Dp(2), hw, Theme.Dp(32));
+            btnCheckUpdate.Bounds = new Rectangle(btnHelp.Left - Theme.Dp(8) - uw, y + Theme.Dp(2), uw, Theme.Dp(32));
+            title.Bounds = new Rectangle(x, y, btnCheckUpdate.Left - Theme.Dp(16) - x, Theme.Dp(36));
             y += Theme.Dp(36) + Theme.Dp(24);
+
+            // 更新提示：固定 96 高，下载时进度条出现在底部，不会挤动下面的卡片
+            if (updateCard.Visible)
+            {
+                int up = Theme.Dp(20), bh = Theme.Dp(40);
+                int lw = btnLater.Visible ? Math.Max(Theme.Dp(72), btnLater.PreferredWidth()) : 0;
+                int aw = btnApplyUpdate.Visible ? Math.Max(Theme.Dp(120), btnApplyUpdate.PreferredWidth()) : 0;
+                int by = (Theme.Dp(96) - bh) / 2;
+                btnLater.Bounds = new Rectangle(w - up - lw, by, lw, bh);
+                btnApplyUpdate.Bounds = new Rectangle((lw > 0 ? btnLater.Left - Theme.Dp(8) : w - up) - aw, by, aw, bh);
+                int tr = (aw > 0 ? btnApplyUpdate.Left : lw > 0 ? btnLater.Left : w - up) - Theme.Dp(16);
+                updateLine.Bounds = new Rectangle(up, up, tr - up, Theme.Dp(24));
+                updateSub.Bounds = new Rectangle(up + Theme.Dp(16), up + Theme.Dp(28), tr - up - Theme.Dp(16), Theme.Dp(20));
+                updateProgress.Bounds = new Rectangle(up, Theme.Dp(80), w - up * 2, Theme.Dp(4));
+                updateCard.Bounds = new Rectangle(x, y, w, Theme.Dp(96));
+                y += updateCard.Height + Theme.Dp(16);
+            }
 
             // 空状态
             int iw = w - cp * 2;
@@ -263,7 +296,10 @@ namespace FMGPatcher.UI
             if (s == null) return "检查中";
             switch (s.State)
             {
-                case PatchState.Patched: return "已汉化 · 补丁 " + s.Record.PatchVersion;
+                case PatchState.Patched:
+                    return s.PatchOutdated
+                        ? "已汉化 · 补丁 " + s.Record.PatchVersion + "，可更新到 " + s.MatchedPatch.PatchVersion
+                        : "已汉化 · 补丁 " + s.Record.PatchVersion;
                 case PatchState.Interrupted: return "上次安装没有完成";
                 case PatchState.ManuallyPatched: return "已手动复制过汉化文件";
                 default: return s.Problem ?? "英文原版，未汉化";
@@ -277,7 +313,8 @@ namespace FMGPatcher.UI
             switch (s.State)
             {
                 case PatchState.Patched:
-                    status.Set(Theme.Success, "中文补丁已安装，直接启动游戏即可");
+                    if (s.PatchOutdated) status.Set(Theme.Accent, "汉化补丁有新版本 " + s.MatchedPatch.PatchVersion + "，点“更新汉化补丁”即可，存档不受影响");
+                    else status.Set(Theme.Success, "中文补丁已安装，直接启动游戏即可");
                     detail.Text = "安装于 " + s.Record.InstalledAt + " · " + s.Record.Files.Count + " 个文件";
                     break;
                 case PatchState.Interrupted:
@@ -298,11 +335,12 @@ namespace FMGPatcher.UI
 
         string PayloadInfo(PatchPackage p)
         {
-            if (payloadInfo.TryGetValue(p.Id, out var cached)) return cached;
+            var key = p.Id + "|" + p.PatchVersion + "|" + p.BaseDir;
+            if (payloadInfo.TryGetValue(key, out var cached)) return cached;
             int n = PatchEngine.PayloadFileCount(p);
             long size = PatchEngine.PayloadSize(p);
             var text = n < 0 ? p.PatchVersion + " · 补丁包缺失" : p.PatchVersion + " · " + n + " 个文件 · " + FileOps.FormatSize(size);
-            payloadInfo[p.Id] = text;
+            payloadInfo[key] = text;
             return text;
         }
 
@@ -316,7 +354,12 @@ namespace FMGPatcher.UI
             list.Enabled = !busy;
 
             btnInstall.Enabled = !busy && s != null && s.CanInstall;
-            btnInstall.Text = s != null && (s.State == PatchState.Patched || s.State == PatchState.Interrupted) ? "重新安装补丁" : "安装中文补丁";
+            btnInstall.Text = s == null ? "安装中文补丁"
+                : s.PatchOutdated ? "更新汉化补丁"
+                : s.State == PatchState.Patched || s.State == PatchState.Interrupted ? "重新安装补丁"
+                : "安装中文补丁";
+            btnApplyUpdate.Enabled = !busy;
+            btnCheckUpdate.Enabled = !busy && !checkingUpdate;
             btnRestore.Enabled = !busy && s != null && s.Record != null;
         }
 
@@ -333,6 +376,7 @@ namespace FMGPatcher.UI
                 return;
             }
             await Scan(includeDisk: false);
+            await CheckUpdates(silent: true);
         }
 
         void ToggleScan()
@@ -412,6 +456,7 @@ namespace FMGPatcher.UI
         }
 
         internal bool Scanning => scanCts != null;
+        internal bool CheckingUpdate => checkingUpdate;
 
         internal void AddUserPath(string path, bool remember = true)
         {
@@ -498,6 +543,146 @@ namespace FMGPatcher.UI
             }
         }
 
+        // ================= 更新 =================
+        async Task CheckUpdates(bool silent)
+        {
+            if (catalog == null || checkingUpdate || busy) return;
+            checkingUpdate = true;
+            btnCheckUpdate.Text = "正在检查";
+            UpdateButtons();
+            try
+            {
+                var info = await UpdateService.CheckAsync(catalog, CancellationToken.None);
+                if (info.Any || info.CatalogNeedsTool)
+                {
+                    pendingUpdate = info;
+                    var parts = new List<string>();
+                    if (info.ToolUpdate) parts.Add("工具 v" + AppInfo.Version + " → v" + info.Manifest.Tool.Version);
+                    if (info.CatalogUpdate || info.CatalogNeedsTool) parts.AddRange(info.PatchChanges);
+                    string head = info.ToolUpdate && (info.CatalogUpdate || info.CatalogNeedsTool) ? "工具和汉化补丁都有新版本"
+                        : info.ToolUpdate ? "新版工具 v" + info.Manifest.Tool.Version + " 可用"
+                        : "汉化补丁有更新";
+                    btnApplyUpdate.Text = "立即更新";
+                    ShowUpdateCard(Theme.Accent, head, string.Join(" · ", parts), apply: true, later: "稍后");
+                }
+                else if (!silent)
+                    ShowUpdateCard(Theme.Success, "已是最新版本", "工具 v" + AppInfo.Version + " · 补丁清单第 " + catalog.Revision + " 版", apply: false, later: "好");
+            }
+            catch (Exception ex)
+            {
+                if (!silent) ShowUpdateCard(Theme.Warn, "检查更新失败", FriendlyNetError(ex), apply: false, later: "好");
+            }
+            finally
+            {
+                checkingUpdate = false;
+                btnCheckUpdate.Text = "检查更新";
+                UpdateButtons();
+            }
+        }
+
+        void ShowUpdateCard(Color dot, string head, string sub, bool apply, string later)
+        {
+            updateLine.Set(dot, head);
+            updateSub.Text = sub;
+            btnApplyUpdate.Visible = apply;
+            btnLater.Visible = later != null;
+            btnLater.Text = later ?? "";
+            updateCard.Visible = true;
+            LayoutMain();
+        }
+
+        async Task ApplyUpdate()
+        {
+            var info = pendingUpdate;
+            if (info == null || busy) return;
+            busy = true;
+            UpdateButtons();
+            btnLater.Visible = false;
+            btnApplyUpdate.Visible = false;
+            updateLine.Set(Theme.Accent, "正在更新");
+            updateProgress.Value = -1;
+            updateProgress.Visible = true;
+            LayoutMain();
+            var reporter = new Progress<PatchProgress>(p =>
+            {
+                if (p.Percent >= 0) updateProgress.Value = p.Percent;
+                updateSub.Text = p.Message;
+            });
+            try
+            {
+                if (info.CatalogUpdate)
+                {
+                    await UpdateService.ApplyCatalogAsync(info, reporter, CancellationToken.None);
+                    await ReloadCatalog();
+                }
+                if (info.ToolUpdate)
+                {
+                    string exe;
+                    try { exe = await UpdateService.ApplyToolAsync(info, reporter, CancellationToken.None); }
+                    catch (UnauthorizedAccessException)
+                    {
+                        pendingUpdate = null;
+                        ShowUpdateCard(Theme.Warn, "工具所在的文件夹不能写入",
+                            "已打开发布页，请手动下载新版；或把工具移到桌面等位置后再更新", apply: false, later: "好");
+                        OpenUrl(info.Manifest.Page ?? UpdateService.ReleasesPage);
+                        return;
+                    }
+                    updateLine.Set(Theme.Success, "新版工具已下载，正在重新打开");
+                    using (Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(exe) })) { }
+                    Application.Exit();
+                    return;
+                }
+                pendingUpdate = null;
+                bool outdated = list.Items.Any(i => i.Status?.PatchOutdated == true);
+                ShowUpdateCard(Theme.Success, "汉化补丁已更新到补丁清单第 " + catalog.Revision + " 版",
+                    outdated ? "已装过旧补丁的游戏，选中后点“更新汉化补丁”即可" : "选中游戏后即可安装新补丁", apply: false, later: "好");
+            }
+            catch (Exception ex)
+            {
+                btnApplyUpdate.Text = "重试";
+                ShowUpdateCard(Theme.Warn, "更新失败", FriendlyNetError(ex), apply: true, later: "稍后");
+            }
+            finally
+            {
+                busy = false;
+                updateProgress.Visible = false;
+                UpdateButtons();
+                ShowGame(list.Selected);
+            }
+        }
+
+        /// <summary>换用新的补丁清单后，按新清单重新识别列表里的每个游戏。</summary>
+        async Task ReloadCatalog()
+        {
+            catalog = AppInfo.LoadCatalog();
+            payloadInfo.Clear();
+            var keep = list.Selected?.Game.Dir;
+            var olds = list.Items.ToList();
+            var cat = catalog;
+            var items = await Task.Run(() => olds.Select(old =>
+            {
+                var c = GameLocator.FromUserPath(cat, old.Game.Dir);
+                if (c == null) return null;
+                c.Source = old.Game.Source;
+                return MakeItem(c);
+            }).Where(i => i != null).ToList());
+            list.SetItems(items, keep);
+        }
+
+        static string FriendlyNetError(Exception ex)
+        {
+            if (ex is PatchException) return ex.Message;
+            for (var e = ex; e != null; e = e.InnerException)
+                if (e is System.Net.Http.HttpRequestException || e is System.Net.WebException || e is TaskCanceledException)
+                    return "连不上 GitHub，请检查网络或代理后重试";
+            return ex.Message;
+        }
+
+        static void OpenUrl(string url)
+        {
+            try { using (Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })) { } } catch { }
+        }
+
         // ================= 其他 =================
         void ShowHelp()
         {
@@ -507,6 +692,7 @@ namespace FMGPatcher.UI
                 "3. 本机版本和补丁适配一致后，点“安装中文补丁”\n" +
                 "4. 想恢复英文原版时，点“还原原版”\n\n" +
                 "游戏装在 Program Files 等系统目录时，会请求一次管理员权限。\n" +
+                "工具启动时会自动检查新版补丁和新版工具，也可以点右上角“检查更新”。\n" +
                 "安装前请先关闭游戏。",
                 "使用说明", MessageBoxButtons.OK, MessageBoxIcon.None);
         }

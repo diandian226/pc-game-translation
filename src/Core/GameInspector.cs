@@ -17,6 +17,9 @@ namespace FMGPatcher.Core
         public InstallRecord Record;
         public string Problem;               // 版本校验失败等原因，给界面直接展示
         public bool CanInstall => MatchedPatch != null && Problem == null;
+        /// <summary>已用本工具装过补丁，但补丁清单里有更新的版本。</summary>
+        public bool PatchOutdated => State == PatchState.Patched && MatchedPatch != null && Record != null &&
+                                     Record.PatchVersion != MatchedPatch.PatchVersion;
     }
 
     /// <summary>读取游戏版本、比对补丁、读取安装记录。</summary>

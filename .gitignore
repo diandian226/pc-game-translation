@@ -1,3 +1,7 @@
+# 更新签名私钥：绝不能上传，请另行离线备份
+signing/
+*.private.xml
+
 # 构建产物
 bin/
 obj/

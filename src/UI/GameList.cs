@@ -131,7 +131,7 @@ namespace FMGPatcher.UI
             if (s == null) return Theme.Idle;
             switch (s.State)
             {
-                case PatchState.Patched: return Theme.Success;
+                case PatchState.Patched: return s.PatchOutdated ? Theme.Accent : Theme.Success;
                 case PatchState.Interrupted:
                 case PatchState.ManuallyPatched: return Theme.Warn;
                 default: return s.Problem != null ? Theme.Warn : Theme.Idle;

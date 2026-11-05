@@ -7,7 +7,18 @@ namespace FMGPatcher.Core
     [DataContract]
     public sealed class Catalog
     {
+        /// <summary>每次发布补丁更新都 +1。工具优先用 revision 更大的那份（内置的或下载缓存的）。</summary>
+        [DataMember(Name = "revision")] public int Revision;
         [DataMember(Name = "games")] public List<GameProfile> Games = new List<GameProfile>();
+
+        /// <summary>这份清单所在目录，补丁包的相对路径以它为基准。不写入 JSON。</summary>
+        [IgnoreDataMember] public string BaseDir;
+
+        public void Bind(string baseDir)
+        {
+            BaseDir = baseDir;
+            foreach (var g in Games) foreach (var p in g.Patches) p.BaseDir = baseDir;
+        }
     }
 
     [DataContract]
@@ -48,6 +59,8 @@ namespace FMGPatcher.Core
         [DataMember(Name = "removeStaleCompiled")] public bool RemoveStaleCompiled;
         /// <summary>可选：原版关键文件的哈希，用于精确校验版本。</summary>
         [DataMember(Name = "requiredFiles")] public List<FileHash> RequiredFiles = new List<FileHash>();
+
+        [IgnoreDataMember] public string BaseDir;
     }
 
     [DataContract]
