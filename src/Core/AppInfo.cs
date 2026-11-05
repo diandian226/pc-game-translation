@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Principal;
 
@@ -23,20 +25,56 @@ namespace LocaForge.Core
         public static string ExePath => Process.GetCurrentProcess().MainModule.FileName;
         public static string CatalogPath => Path.Combine(ExeDir, "catalog.json");
 
-        /// <summary>联网下载的补丁清单和补丁包放在这里（工具所在目录可能没有写权限）。</summary>
-        public static string CacheDir => Environment.GetEnvironmentVariable("LOCAFORGE_CACHE_DIR")   // 测试用
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LocaForge", "updates");
+        /// <summary>
+        /// 下载缓存的候选位置，按优先级：%LOCALAPPDATA% → 工具所在文件夹 → 临时目录。
+        /// 某些环境（受限账户、沙盒里启动的程序）不允许写 %LOCALAPPDATA%，这时自动换下一个。
+        /// </summary>
+        static IEnumerable<string> CacheCandidates()
+        {
+            var env = Environment.GetEnvironmentVariable("LOCAFORGE_CACHE_DIR");   // 测试用
+            if (env != null) { yield return env; yield break; }
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LocaForge", "updates");
+            yield return Path.Combine(ExeDir, "updates");
+            yield return Path.Combine(Path.GetTempPath(), "LocaForge", "updates");
+        }
+
+        static string cacheDir;
+
+        /// <summary>联网下载的补丁清单和补丁包放在这里：第一个能写入的候选位置。</summary>
+        public static string CacheDir
+        {
+            get
+            {
+                if (cacheDir != null) return cacheDir;
+                foreach (var dir in CacheCandidates())
+                    if (CanWrite(dir)) return cacheDir = dir;
+                throw new PatchException("找不到可以保存更新的文件夹：%LOCALAPPDATA%、工具所在文件夹和临时目录都没有写入权限");
+            }
+        }
+
+        static bool CanWrite(string dir)
+        {
+            try
+            {
+                Directory.CreateDirectory(dir);
+                var probe = Path.Combine(dir, ".write-test-" + Guid.NewGuid().ToString("N"));
+                File.WriteAllText(probe, "");
+                File.Delete(probe);
+                return true;
+            }
+            catch { return false; }
+        }
 
         /// <summary>改名前（FMGPatcher 0.2.x）的下载缓存，只读不写；新缓存没有更新的清单时沿用它。</summary>
         static string LegacyCacheDir => Environment.GetEnvironmentVariable("LOCAFORGE_CACHE_DIR") != null ? null
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FMG" + "Patcher", "updates");
 
-        /// <summary>内置清单和下载缓存里的清单，取 revision 大的那份。</summary>
+        /// <summary>内置清单和所有候选缓存位置里的清单，取 revision 最大的那份（只读，不要求可写）。</summary>
         public static Catalog LoadCatalog()
         {
             Catalog best = null;
             if (File.Exists(CatalogPath)) { best = Json.Load<Catalog>(CatalogPath); best.Bind(ExeDir); }
-            foreach (var dir in new[] { CacheDir, LegacyCacheDir })
+            foreach (var dir in CacheCandidates().Concat(new[] { LegacyCacheDir }))
             {
                 if (dir == null) continue;
                 try

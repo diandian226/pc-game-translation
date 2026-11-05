@@ -14,7 +14,8 @@ param(
     [string]$Tag,                              # 仅用于修复已发布版本的清单（配合 -DryRun）
     [string]$MinToolVersion = "0.3.0",            # 清单用到 exe 通配符和 {exe} 指纹，需要 0.3.0 及以上
     [switch]$DryRun,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$AllowDirty                          # 仅调试用：允许在有未提交改动时发布（正式发布不要用）
 )
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
@@ -25,6 +26,17 @@ $utf8 = New-Object Text.UTF8Encoding $false
 if ($NotesFile) { $Notes = [IO.File]::ReadAllText((Resolve-Path $NotesFile), [Text.Encoding]::UTF8).Trim() }
 if ([string]::IsNullOrWhiteSpace($Notes)) { throw "请用 -NotesFile 或 -Notes 提供发布说明" }
 if ($MinToolVersion -notmatch '^\d+\.\d+\.\d+$') { throw "MinToolVersion 必须是 x.y.z 格式，现在是：$MinToolVersion" }
+
+# 发布的程序必须和已推送的提交完全对应：工作区有未提交的改动、或本地提交还没推送，就拒绝发布
+if (-not $DryRun -and -not $AllowDirty) {
+    $dirty = git -C $root status --porcelain
+    if ($dirty) { throw "工作区有未提交的改动，请先提交再发布：`n$($dirty -join "`n")" }
+    git -C $root -c http.proxy= -c https.proxy= fetch -q origin 2>$null
+    $ahead = git -C $root rev-list --count "origin/main..HEAD"
+    $behind = git -C $root rev-list --count "HEAD..origin/main"
+    if ([int]$ahead -gt 0) { throw "有 $ahead 个本地提交还没推送，请先 git push 再发布" }
+    if ([int]$behind -gt 0) { throw "远程有 $behind 个新提交，请先合并再发布" }
+}
 
 # ---------- 1. 构建 ----------
 if (-not $SkipBuild) { & (Join-Path $root "build.ps1") }

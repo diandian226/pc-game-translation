@@ -679,8 +679,14 @@ namespace LocaForge.UI
         {
             if (ex is PatchException) return ex.Message;
             for (var e = ex; e != null; e = e.InnerException)
+            {
                 if (e is System.Net.Http.HttpRequestException || e is System.Net.WebException || e is TaskCanceledException)
                     return "连不上 GitHub，请检查网络或代理后重试";
+                if (e is UnauthorizedAccessException)
+                    return "没有权限保存更新文件。请直接双击 LocaForge.exe 运行，或把工具移到桌面等位置后重试";
+                if (e is IOException)
+                    return "保存更新文件失败，可能被其他程序占用，请稍后重试";
+            }
             return ex.Message;
         }
 
