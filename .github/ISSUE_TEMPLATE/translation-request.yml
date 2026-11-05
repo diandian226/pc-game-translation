@@ -1,0 +1,22 @@
+name: 提交想汉化的游戏
+description: 填写游戏名称和资源地址，有附件就上传，没有就留空。
+title: "[汉化申请] "
+body:
+  - type: input
+    id: game_name
+    attributes:
+      label: 游戏名称
+      description: 如有版本号，请一起填写。
+      placeholder: 游戏名称、版本号
+    validations:
+      required: true
+  - type: textarea
+    id: resource_url
+    attributes:
+      label: 资源地址
+      description: 可填写官方页面、下载页或分享链接；如需提取码，也请附上。
+  - type: textarea
+    id: attachments
+    attributes:
+      label: 附件（可选）
+      description: 附上资源可以让汉化更快，适配更准。可将压缩包等附件拖到此输入框；如果无法上传，请在上面填写分享链接，没有附件就留空。
