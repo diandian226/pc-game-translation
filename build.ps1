@@ -4,6 +4,9 @@
 #   3. 编译并把 exe、catalog.json、payload 放进 publish\
 param(
     [string]$PatchSource = (Join-Path $PSScriptRoot "..\FMGWorld-汉化补丁-0.2.1"),
+    # 万物生长领域（Godot 单文件游戏）：原版 exe + 完整汉化资源包，构建脚本只提取改动部分
+    [string]$EvergrowOriginal   = (Join-Path $PSScriptRoot "..\RealmOfEvergrow_0.3.4.2_中文新译_20261102\中文试玩版_可运行\Realm_of_Evergrow.exe"),
+    [string]$EvergrowTranslated = (Join-Path $PSScriptRoot "..\RealmOfEvergrow_0.3.4.2_中文新译_20261102\中文试玩版_可运行\Chinese.pck"),
     [string]$IconSource  = (Join-Path $PSScriptRoot "..\FMGWorld_手机汉化工具\artwork\launcher-source.png")
 )
 $ErrorActionPreference = "Stop"
@@ -55,7 +58,14 @@ Copy-Item (Join-Path $PatchSource "game") (Join-Path $stage "game") -Recurse
 Get-ChildItem $stage -Recurse -Include *.rpyc, *.bak | Remove-Item
 [IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip, [IO.Compression.CompressionLevel]::Optimal, $false)
 Remove-Item $stage -Recurse -Force
-Write-Host ("补丁包 {0:N1} MB" -f ((Get-Item $zip).Length / 1MB))
+Write-Host ("FMGWorld 补丁包 {0:N1} MB" -f ((Get-Item $zip).Length / 1MB))
+
+# 万物生长领域：外挂补丁（override.cfg + zh\），详见 tools\godot\build_godot_patch.py
+$evergrowZip = Join-Path $payloadDir "realm-of-evergrow-zh-0.3.4.2.zip"
+$env:PYTHONIOENCODING = "utf-8"
+python -I (Join-Path $PSScriptRoot "tools\godot\build_godot_patch.py") --original $EvergrowOriginal --translated $EvergrowTranslated `
+    --out $evergrowZip --autoload "ZhUI=res://zh/zh_ui.gd"
+if ($LASTEXITCODE -ne 0) { throw "万物生长领域补丁构建失败" }
 
 # ---------- 3. 编译 ----------
 dotnet build (Join-Path $PSScriptRoot "LocaForge.csproj") -c Release -o (Join-Path $PSScriptRoot "build") --nologo -v q

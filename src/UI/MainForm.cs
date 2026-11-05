@@ -27,6 +27,8 @@ namespace LocaForge.UI
         readonly GameList list = new GameList();
         readonly FlatButton btnScan = new FlatButton("搜索电脑", ButtonKind.Secondary, Glyph.Search);
         readonly FlatButton btnBrowse = new FlatButton("手动选择游戏", ButtonKind.Ghost, Glyph.Folder) { AlignLeft = true };
+        readonly FlatButton btnFeedback = new FlatButton("问题反馈", ButtonKind.Ghost, Glyph.Message) { AlignLeft = true };
+        readonly FlatButton btnRequest = new FlatButton("提交想汉化的游戏", ButtonKind.Ghost, Glyph.Plus) { AlignLeft = true };
         Bitmap appIcon;
 
         // 主区
@@ -48,7 +50,7 @@ namespace LocaForge.UI
         readonly Card emptyCard = new Card();
         readonly GameIconBox emptyIcon = new GameIconBox();
         readonly TextView emptyHeading = new TextView("还没有选中游戏", () => Theme.Heading, Theme.Text);
-        readonly TextView emptyBody = new TextView("在左侧选一个游戏，或把游戏文件夹、FMGWorld.exe 拖进这个窗口", () => Theme.Body, Theme.TextSecondary) { Wrap = true };
+        readonly TextView emptyBody = new TextView("在左侧选一个游戏，或把游戏文件夹、游戏程序拖进这个窗口", () => Theme.Body, Theme.TextSecondary) { Wrap = true };
         readonly FlatButton emptyScan = new FlatButton("搜索电脑", ButtonKind.Ink, Glyph.Search);
         readonly FlatButton emptyBrowse = new FlatButton("手动选择", ButtonKind.Secondary, Glyph.Folder);
 
@@ -103,8 +105,10 @@ namespace LocaForge.UI
             list.SelectionChanged += (s, e) => ShowGame(list.Selected);
             btnScan.Click += (s, e) => ToggleScan();
             btnBrowse.Click += (s, e) => Browse();
+            btnFeedback.Click += (s, e) => OpenSubmission(CommunityLinks.Feedback);
+            btnRequest.Click += (s, e) => OpenSubmission(CommunityLinks.TranslationRequest);
 
-            side.Controls.AddRange(new Control[] { list, btnScan, btnBrowse });
+            side.Controls.AddRange(new Control[] { list, btnScan, btnBrowse, btnFeedback, btnRequest });
             Controls.Add(side);
         }
 
@@ -135,7 +139,9 @@ namespace LocaForge.UI
         {
             int pad = Theme.Dp(16), w = side.Width - pad * 2 - 1;
             int bottom = side.Height - Theme.Dp(20);
-            btnBrowse.Bounds = new Rectangle(pad, bottom - Theme.Dp(36), w, Theme.Dp(36));
+            btnRequest.Bounds = new Rectangle(pad, bottom - Theme.Dp(36), w, Theme.Dp(36));
+            btnFeedback.Bounds = new Rectangle(pad, btnRequest.Top - Theme.Dp(4) - Theme.Dp(36), w, Theme.Dp(36));
+            btnBrowse.Bounds = new Rectangle(pad, btnFeedback.Top - Theme.Dp(12) - Theme.Dp(36), w, Theme.Dp(36));
             btnScan.Bounds = new Rectangle(pad, btnBrowse.Top - Theme.Dp(8) - Theme.Dp(40), w, Theme.Dp(40));
             int top = Theme.Dp(116);
             list.Bounds = new Rectangle(pad - Theme.Dp(4), top, w + Theme.Dp(8), btnScan.Top - Theme.Dp(16) - top);
@@ -432,7 +438,7 @@ namespace LocaForge.UI
 
         static GameItem MakeItem(GameCandidate c)
         {
-            var exe = c.Profile.ExeNames.Select(n => Path.Combine(c.Dir, n)).FirstOrDefault(File.Exists);
+            var exe = ExeFinder.Find(c.Profile, c.Dir).FirstOrDefault();
             return new GameItem
             {
                 Game = c,
@@ -464,7 +470,7 @@ namespace LocaForge.UI
             var c = GameLocator.FromUserPath(catalog, path);
             if (c == null)
             {
-                MessageBox.Show(this, "这个位置不是支持的游戏。\n请选择 FMGWorld.exe，或包含它的游戏文件夹。\n\n" + path,
+                MessageBox.Show(this, "这个位置不是支持的游戏。\n请选择游戏程序（.exe），或包含它的游戏文件夹。点右上角“使用说明”可查看支持的游戏。\n\n" + path,
                     "不是支持的游戏", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -683,11 +689,19 @@ namespace LocaForge.UI
             try { using (Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })) { } } catch { }
         }
 
+        void OpenSubmission(string url)
+        {
+            new SubmissionForm(url == CommunityLinks.Feedback ? "问题反馈" : "提交想汉化的游戏", url).Show(this);
+        }
+
         // ================= 其他 =================
         void ShowHelp()
         {
+            var supported = catalog == null ? "" : string.Join("、",
+                catalog.Games.SelectMany(g => g.Patches.Select(p => g.Name + " " + p.GameVersion)));
             MessageBox.Show(this,
-                "1. 准备 FMGWorld 0.2.1 英文原版（建议从 itch.io 官方页面获取）\n" +
+                (supported.Length > 0 ? "目前支持：" + supported + "\n\n" : "") +
+                "1. 准备上面对应版本的英文原版游戏（建议从官方渠道获取）\n" +
                 "2. 在左侧选中游戏；找不到时点“搜索电脑”，或把游戏文件夹拖进窗口\n" +
                 "3. 本机版本和补丁适配一致后，点“安装中文补丁”\n" +
                 "4. 想恢复英文原版时，点“还原原版”\n\n" +

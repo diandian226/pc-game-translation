@@ -17,7 +17,7 @@
     <RootNamespace>LocaForge</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>assets\app.ico</ApplicationIcon>
-    <Version>0.3.0</Version>
+    <Version>0.3.2</Version>
     <Product>LocaForge 汉化工坊</Product>
     <Company>LocaForge</Company>
     <Copyright>非官方汉化，仅供学习交流</Copyright>

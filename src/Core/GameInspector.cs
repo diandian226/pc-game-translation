@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -78,26 +79,51 @@ namespace LocaForge.Core
             bool anyFileFound = false;
             foreach (var group in p.VersionFingerprints.GroupBy(f => f.Path, StringComparer.OrdinalIgnoreCase))
             {
-                var full = Path.Combine(dir, group.Key.Replace('/', '\\'));
-                if (!File.Exists(full)) continue;
-                anyFileFound = true;
-                long size = new FileInfo(full).Length;
-                var candidates = group.Where(f => f.Size == size).ToList();
-                if (candidates.Count == 0) continue;
-                string hash;
-                try { hash = FileOps.Sha256(full); } catch { continue; }
-                var hit = candidates.FirstOrDefault(f => string.Equals(f.Sha256, hash, StringComparison.OrdinalIgnoreCase));
-                if (hit != null) return hit.Version;
+                // {exe}：单文件游戏直接对程序本身做指纹；目录里有多个符合的程序（如原版和改过的版本）时逐个比对
+                var files = group.Key == "{exe}"
+                    ? ExeFinder.Find(p, dir)
+                    : new List<string> { Path.Combine(dir, group.Key.Replace('/', '\\')) };
+                foreach (var full in files)
+                {
+                    if (!File.Exists(full)) continue;
+                    anyFileFound = true;
+                    long size = new FileInfo(full).Length;
+                    var candidates = group.Where(f => f.Size == size).ToList();
+                    if (candidates.Count == 0) continue;
+                    var hash = CachedSha256(full);
+                    if (hash == null) continue;
+                    var hit = candidates.FirstOrDefault(f => string.Equals(f.Sha256, hash, StringComparison.OrdinalIgnoreCase));
+                    if (hit != null) return hit.Version;
+                }
             }
 
             problem = anyFileFound
-                ? "不是已知的官方版本，可能是修改版，不能安装"
-                : "缺少游戏脚本包，无法识别版本";
+                ? "不是已收录的版本（可能是其他版本或修改版），暂不能安装"
+                : "缺少用来识别版本的游戏文件";
             return text;
+        }
+
+        /// <summary>单文件游戏的 exe 有几百 MB，按"路径 + 大小 + 修改时间"缓存哈希，避免每次刷新都重算。</summary>
+        static readonly Dictionary<string, string> hashCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        static string CachedSha256(string path)
+        {
+            try
+            {
+                var fi = new FileInfo(path);
+                var key = fi.FullName + "|" + fi.Length + "|" + fi.LastWriteTimeUtc.Ticks;
+                lock (hashCache)
+                    if (hashCache.TryGetValue(key, out var h)) return h;
+                var hash = FileOps.Sha256(path);
+                lock (hashCache) hashCache[key] = hash;
+                return hash;
+            }
+            catch { return null; }
         }
 
         static string ReadVersionText(GameProfile p, string dir)
         {
+            if (string.IsNullOrEmpty(p.VersionFile) || string.IsNullOrEmpty(p.VersionRegex)) return null;
             try
             {
                 var file = Path.Combine(dir, p.VersionFile.Replace('/', '\\'));
@@ -108,28 +134,31 @@ namespace LocaForge.Core
             catch { return null; }
         }
 
-        /// <summary>游戏是否正在运行。Ren'Py 的启动器会再拉起一个同名进程，所以按名字找即可。</summary>
+        /// <summary>
+        /// 游戏是否正在运行：进程名符合 exeNames（支持通配符），且程序位于这个游戏目录里。
+        /// Ren'Py 的启动器会在 lib 子目录再拉起一个同名进程，所以判断"在目录之下"而不是"在目录里"。
+        /// </summary>
         public static bool IsRunning(GameCandidate game)
         {
-            foreach (var exe in game.Profile.ExeNames)
+            foreach (var proc in Process.GetProcesses())
             {
-                var procs = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe));
-                foreach (var proc in procs)
+                try
                 {
-                    try
-                    {
-                        var path = proc.MainModule?.FileName;
-                        if (path == null || path.StartsWith(game.Dir + "\\", StringComparison.OrdinalIgnoreCase)) return true;
-                    }
-                    catch { return true; } // 拿不到路径时保守处理
-                    finally { proc.Dispose(); }
+                    if (!ExeFinder.IsMatch(game.Profile, proc.ProcessName + ".exe")) continue;
+                    var path = proc.MainModule?.FileName;
+                    if (path == null || path.StartsWith(game.Dir + "\\", StringComparison.OrdinalIgnoreCase)) return true;
                 }
+                catch { if (ExeFinder.IsMatch(game.Profile, proc.ProcessName + ".exe")) return true; } // 拿不到路径时保守处理
+                finally { proc.Dispose(); }
             }
             return false;
         }
 
+        /// <summary>存档目录：catalog 里写了 saveDirectory（可含 %APPDATA% 等环境变量）就用它，否则按 Ren'Py 规则从 options.rpy 推算。</summary>
         public static string SaveDirectory(GameCandidate game)
         {
+            if (!string.IsNullOrEmpty(game.Profile.SaveDirectory))
+                return Environment.ExpandEnvironmentVariables(game.Profile.SaveDirectory).Replace('/', '\\');
             try
             {
                 var opt = Path.Combine(game.Dir, @"game\options.rpy");

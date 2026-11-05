@@ -3,7 +3,7 @@ using System.Drawing.Drawing2D;
 
 namespace LocaForge.UI
 {
-    public enum Glyph { None, Search, Folder, Help, Chevron, Gamepad, Install, Restore, Open, Refresh }
+    public enum Glyph { None, Search, Folder, Help, Chevron, Gamepad, Install, Restore, Open, Refresh, Message, Plus }
 
     /// <summary>界面里仅有的几个线条图标，统一 1.5 笔画、圆头，与安卓版 LineIcon 同一画法。</summary>
     static class LineIcon
@@ -18,6 +18,15 @@ namespace LocaForge.UI
                 PointF P(float fx, float fy) => new PointF(x + w * fx, y + h * fy);
                 switch (kind)
                 {
+                    case Glyph.Message:
+                        g.DrawLines(pen, new[] { P(0.15f, 0.18f), P(0.85f, 0.18f), P(0.85f, 0.68f), P(0.42f, 0.68f), P(0.22f, 0.84f), P(0.22f, 0.68f), P(0.15f, 0.68f), P(0.15f, 0.18f) });
+                        g.DrawLine(pen, P(0.31f, 0.36f), P(0.69f, 0.36f));
+                        g.DrawLine(pen, P(0.31f, 0.51f), P(0.59f, 0.51f));
+                        break;
+                    case Glyph.Plus:
+                        g.DrawLine(pen, P(0.5f, 0.2f), P(0.5f, 0.8f));
+                        g.DrawLine(pen, P(0.2f, 0.5f), P(0.8f, 0.5f));
+                        break;
                     case Glyph.Search:
                         g.DrawEllipse(pen, x + w * 0.16f, y + h * 0.16f, w * 0.52f, h * 0.52f);
                         g.DrawLine(pen, P(0.6f, 0.6f), P(0.84f, 0.84f));

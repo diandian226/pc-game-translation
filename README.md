@@ -1,6 +1,11 @@
 # LocaForge 汉化工坊
 
-电脑版游戏汉化补丁的安装工具和补丁发布仓库。目前支持 FMGWorld 0.2.1。
+电脑版游戏汉化补丁的安装工具和补丁发布仓库。目前支持：
+
+| 游戏 | 版本 | 引擎 | 补丁方式 |
+|---|---|---|---|
+| FMGWorld | 0.2.1 | Ren'Py | 覆盖 `game` 目录里的脚本和字体 |
+| 万物生长领域 Realm of Evergrow | 0.3.4.2 | Godot 4（单文件） | 外挂补丁，exe 不改 |
 
 ![界面](docs/screenshot.png)
 
@@ -12,6 +17,8 @@
 4. 想恢复英文原版时，点"还原原版"
 
 工具每次启动会自动检查新版补丁和新版工具，有更新时点"立即更新"即可，不用重新下载。
+
+左下角提供“问题反馈”和“提交想汉化的游戏”，分别打开本项目的 GitHub 表单。汉化申请只需填写游戏名称、资源地址，附件可选；附上资源可以让汉化更快，适配更准。用户需登录 GitHub 后自行提交，工具不会自动发送报告。
 
 安装前会把被覆盖的原文件备份到游戏目录的 `_zh_patch` 文件夹，还原时原样放回。补丁不修改游戏程序，也不动存档。
 
@@ -83,4 +90,23 @@ LocaForge.exe --render out.png ["游戏目录"]   # 把界面画成图片
 ### 加新游戏或新版本
 
 在 `catalog.json` 里加一个 `games` 项或一个 `patches` 项，补丁 zip 放进 `publish\payload\`。
-新的官方游戏版本要在 `versionFingerprints` 里加一条 `scripts.rpa` 的 `size` / `sha256`，否则会被当成修改版。
+新的官方游戏版本要在 `versionFingerprints` 里加一条指纹（`size` / `sha256`），否则会被当成"未收录的版本"。
+
+- `exeNames` 可以写通配符（如 `Realm_of_Evergrow*.exe`），玩家给单文件游戏改名也能认出
+- 指纹的 `path` 写 `{exe}` 表示直接对游戏程序本身做指纹，适合资源内嵌在 exe 里的游戏
+- `saveDirectory` 写存档目录（可用 `%APPDATA%`），不写时按 Ren'Py 规则推算
+
+### Godot 单文件游戏（资源内嵌在 exe 里）
+
+这类游戏不会读取 exe 旁边的 `.pck`，所以用"外挂补丁"：
+
+```powershell
+python tools\godot\build_godot_patch.py --original 原版.exe --translated 完整汉化.pck --out publish\payload\xxx.zip [--autoload ZhUI=res://zh/zh_ui.gd]
+```
+
+脚本只提取汉化改动和新增的文件，打成 `zh\zh_patch.pck`；再读取原版的 `project.binary`，用 `override.cfg` 接管游戏的**第一个自动加载**：
+它改为加载 `zh\<名字>.tscn`，这个场景先引用 `zh\zh_hook.gd`（加载时立即挂上补丁包），再引用游戏原本的脚本。
+这样补丁在游戏任何脚本、场景、剧情加载之前生效，节点名和单例名不变。脚本最后会输出 exe 的版本指纹，填进 `catalog.json`。
+
+做法的验证过程：补丁挂得太晚（作为最后一个自动加载）时，已有 58 个改动资源被游戏提前加载成英文；挂在加载翻译文件的阶段又太早，脚本系统未就绪会崩溃。
+首个自动加载是脚本时，生成的场景根节点默认是 `Node`，如果它继承的是别的节点类型，用 `--root-type` 指定。

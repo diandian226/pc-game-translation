@@ -37,6 +37,10 @@ namespace LocaForge.Core
         /// <summary>手动复制过补丁的特征文件：没有安装记录但这些文件存在，就判定为"已手动汉化"。</summary>
         [DataMember(Name = "patchedMarkers")] public List<string> PatchedMarkers = new List<string>();
         [DataMember(Name = "steamAppId")] public string SteamAppId;
+        /// <summary>引擎，仅用于说明（renpy / godot）。</summary>
+        [DataMember(Name = "engine")] public string Engine;
+        /// <summary>存档目录，可含 %APPDATA% 等环境变量；不写时按 Ren'Py 规则推算。</summary>
+        [DataMember(Name = "saveDirectory")] public string SaveDirectory;
         /// <summary>扫描磁盘时优先进入的文件夹名。</summary>
         [DataMember(Name = "searchFolderNames")] public List<string> SearchFolderNames = new List<string>();
         [DataMember(Name = "patches")] public List<PatchPackage> Patches = new List<PatchPackage>();

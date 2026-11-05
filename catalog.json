@@ -1,9 +1,10 @@
 {
-  "revision": 1,
+  "revision": 2,
   "games": [
     {
       "id": "fmgworld",
       "name": "FMGWorld",
+      "engine": "renpy",
       "exeNames": [ "FMGWorld.exe" ],
       "markers": [ "game", "renpy", "game/scripts.rpa" ],
       "versionFile": "game/options.rpy",
@@ -28,6 +29,37 @@
           "payload": "payload/fmgworld-zh-0.2.1.zip",
           "payloadRoot": "",
           "removeStaleCompiled": true,
+          "requiredFiles": []
+        }
+      ]
+    },
+    {
+      "id": "realm-of-evergrow",
+      "name": "万物生长领域",
+      "engine": "godot",
+      "exeNames": [ "Realm_of_Evergrow*.exe" ],
+      "markers": [],
+      "versionFingerprints": [
+        {
+          "version": "0.3.4.2",
+          "path": "{exe}",
+          "size": 493881568,
+          "sha256": "823508109bb5ff64dfdb37c01fa3c7e3307b7ddc252587510995b172023633a4"
+        }
+      ],
+      "patchedMarkers": [ "zh/zh_hook.gd", "zh/zh_patch.pck" ],
+      "saveDirectory": "%APPDATA%/Godot/app_userdata/Realm of Evergrow",
+      "steamAppId": "",
+      "searchFolderNames": [ "Realm", "Evergrow", "万物生长" ],
+      "patches": [
+        {
+          "id": "realm-of-evergrow-zh-0.3.4.2",
+          "title": "简体中文汉化 0.3.4.2",
+          "gameVersion": "0.3.4.2",
+          "patchVersion": "0.3.4.2-pc1",
+          "payload": "payload/realm-of-evergrow-zh-0.3.4.2.zip",
+          "payloadRoot": "",
+          "removeStaleCompiled": false,
           "requiredFiles": []
         }
       ]

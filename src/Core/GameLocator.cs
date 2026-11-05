@@ -29,6 +29,8 @@ namespace LocaForge.Core
             void Add(GameProfile p, string dir, string source)
             {
                 try { dir = Path.GetFullPath(dir).TrimEnd('\\'); } catch { return; }
+                // 运行记录里可能留着已删除游戏的旧路径，删除后文件夹会落在回收站里
+                if (dir.IndexOf("\\$RECYCLE.BIN\\", StringComparison.OrdinalIgnoreCase) >= 0) return;
                 if (seen.Contains(dir) || !Matches(p, dir)) return;
                 seen.Add(dir);
                 found.Add(new GameCandidate { Dir = dir, Source = source, Profile = p });
@@ -74,7 +76,7 @@ namespace LocaForge.Core
             try
             {
                 if (!Directory.Exists(dir)) return false;
-                if (!p.ExeNames.Any(e => File.Exists(Path.Combine(dir, e)))) return false;
+                if (ExeFinder.Find(p, dir).Count == 0) return false;
                 foreach (var m in p.Markers)
                 {
                     var full = Path.Combine(dir, m.Replace('/', '\\'));
@@ -154,12 +156,15 @@ namespace LocaForge.Core
                     using (var key = Registry.CurrentUser.OpenSubKey(k))
                     {
                         if (key == null) continue;
+                        // 值名形如 C:\路径\Game.exe 或 C:\路径\Game.exe.FriendlyAppName
                         foreach (var name in key.GetValueNames())
-                            foreach (var exe in p.ExeNames)
-                            {
-                                int i = name.IndexOf("\\" + exe, StringComparison.OrdinalIgnoreCase);
-                                if (i > 0) results.Add(name.Substring(0, i));
-                            }
+                        {
+                            int i = name.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+                            if (i <= 0) continue;
+                            var exePath = name.Substring(0, i + 4);
+                            if (ExeFinder.IsMatch(p, Path.GetFileName(exePath)))
+                                results.Add(Path.GetDirectoryName(exePath));
+                        }
                     }
                 }
                 catch { }
@@ -171,7 +176,7 @@ namespace LocaForge.Core
         static readonly string[] SkipDirs =
         {
             "Windows", "Program Files", "Program Files (x86)", "ProgramData", "$Recycle.Bin", "System Volume Information",
-            "AppData", "node_modules", ".git", "Recovery", "PerfLogs", "MSOCache", "Intel", "AMD", "NVIDIA",
+            "AppData", "node_modules", ".git", "Recovery", "PerfLogs", "MSOCache", "Intel", "AMD", "NVIDIA", "$RECYCLE.BIN",
         };
 
         static IEnumerable<string> FromDiskScan(GameProfile p, IProgress<string> progress, CancellationToken ct)
@@ -201,7 +206,7 @@ namespace LocaForge.Core
         static void Walk(GameProfile p, string dir, int depth, List<string> results, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
-            if (p.ExeNames.Any(e => File.Exists(Path.Combine(dir, e)))) { results.Add(dir); return; }
+            if (ExeFinder.Find(p, dir).Count > 0) { results.Add(dir); return; }
             if (depth <= 0) return;
             foreach (var sub in SafeSubdirs(dir))
             {

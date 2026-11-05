@@ -12,7 +12,7 @@ param(
     [string]$Notes,
     [string]$NotesFile,                        # 推荐：发布说明写在 UTF-8 文本文件里
     [string]$Tag,                              # 仅用于修复已发布版本的清单（配合 -DryRun）
-    [string]$MinToolVersion = "0.2.0",
+    [string]$MinToolVersion = "0.3.0",            # 清单用到 exe 通配符和 {exe} 指纹，需要 0.3.0 及以上
     [switch]$DryRun,
     [switch]$SkipBuild
 )
